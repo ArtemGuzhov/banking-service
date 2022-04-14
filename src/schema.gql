@@ -1,0 +1,56 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input DepositWalletInput {
+  """Please, input wallet id"""
+  id: ID!
+
+  """Please, input sum for deposit"""
+  sum: Float!
+}
+
+type Mutation {
+  closeWallet(id: Float!): String!
+  createWallet: WalletEntity!
+  depositWallet(depositWallet: DepositWalletInput!): Float!
+  withdrawWallet(withdrawWallet: WithdrawWalletInput!): Float!
+}
+
+type Query {
+  getOneTransaction(id: Float!): TransactionEntity!
+  getOneWallet(id: Float!): WalletEntity!
+  getTransactions: [TransactionEntity!]!
+  getWallets: [WalletEntity!]!
+}
+
+type TransactionEntity {
+  created_at: DateTime!
+  id: ID!
+  operation: String!
+  sum: Float!
+  wallet: WalletEntity!
+}
+
+type WalletEntity {
+  balance: Float!
+  closed_at: DateTime
+  created_at: DateTime!
+  id: ID!
+  status: Boolean!
+  transactions: [TransactionEntity!]!
+  updated_at: DateTime!
+}
+
+input WithdrawWalletInput {
+  """Please, input wallet id"""
+  id: ID!
+
+  """Please, input sum for deposit"""
+  sum: Float!
+}
