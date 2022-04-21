@@ -2,39 +2,169 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input CloseWalletInput {
+  """Please, input user id"""
+  userId: ID!
+
+  """Please, input wallet id"""
+  walletId: ID!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
 
 input DepositWalletInput {
-  """Please, input wallet id"""
-  id: ID!
-
   """Please, input sum for deposit"""
   sum: Float!
+
+  """Please, input user id"""
+  userId: ID!
+
+  """Please, input wallet id"""
+  walletId: ID!
 }
 
 type Mutation {
-  closeWallet(id: Float!): String!
-  createWallet: WalletEntity!
-  depositWallet(depositWallet: DepositWalletInput!): Float!
-  withdrawWallet(withdrawWallet: WithdrawWalletInput!): Float!
+  """
+  
+              Closes the user's wallet. The user ID and wallet ID are received as input.
+      
+  """
+  close(closeWallet: CloseWalletInput!): String!
+
+  """User creation. Takes name and email as input"""
+  createUser(userCreate: UserCreateInput!): User!
+
+  """Creating a user wallet. The user ID is received as input."""
+  createWallet(
+    """user id"""
+    id: Float!
+  ): Wallet!
+
+  """Deleting a user by his id."""
+  delete(id: Float!): String!
+
+  """
+  Replenishes the user's wallet for a certain amount. The input accepts the amount, user ID and wallet.
+  """
+  deposit(depositWallet: DepositWalletInput!): Float!
+
+  """
+  Transferring money from one wallet to another. The input accepts the id of the wallet from which the transfer is to be made and the id of the wallet to which funds and the amount to be transferred should be received.
+  """
+  transfer(transferWallet: TransferWalletInput!): Float!
+
+  """
+  Withdraws a certain amount from the user's wallet. The input accepts the amount, user ID and wallet.
+  """
+  withdraw(withdrawWallet: WithdrawWalletInput!): Float!
 }
 
 type Query {
-  getOneTransaction(id: Float!): TransactionEntity!
-  getOneWallet(id: Float!): WalletEntity!
-  getTransactions: [TransactionEntity!]!
-  getWallets: [WalletEntity!]!
+  """Receiving a transaction by id."""
+  transaction(
+    """transaction id"""
+    id: Float!
+  ): Transaction!
+
+  """Get all transactions."""
+  transactions(
+    """Filters: ['deposit', 'withdraw', 'transfer', 'receipt']."""
+    filter: String
+  ): [Transaction!]!
+
+  """Getting user data by his id."""
+  user(id: Float!): User!
+
+  """Getting all users."""
+  users(
+    """Filters: ['active', 'remote']."""
+    filter: String
+  ): [User!]!
+
+  """Getting one wallet by its ID."""
+  wallet(
+    """wallet id"""
+    id: Float!
+  ): Wallet!
+
+  """Getting all wallets."""
+  wallets(
+    """Filters: ['active', 'closed']."""
+    filter: String
+  ): [Wallet!]!
+}
+
+type Transaction {
+  created_at: DateTime!
+  from: Float
+  id: ID!
+  operation: String!
+  sum: Float!
+  to: Float
+  wallet: Wallet!
 }
 
 type TransactionEntity {
   created_at: DateTime!
+  from: Float
   id: ID!
   operation: String!
   sum: Float!
+  to: Float
   wallet: WalletEntity!
+}
+
+input TransferWalletInput {
+  """Please, input sender`s wallet id"""
+  from: ID!
+
+  """Please, input sum for transfet"""
+  sum: Float!
+
+  """Please, input recipient`s wallet id"""
+  to: ID!
+}
+
+type User {
+  created_at: DateTime!
+  deleted_at: DateTime
+  email: String!
+  id: ID!
+  name: String!
+  updated_at: DateTime!
+  wallets: [Wallet!]!
+}
+
+input UserCreateInput {
+  """Please, input user email"""
+  email: String!
+
+  """Please, input user name"""
+  name: String!
+}
+
+type UserEntity {
+  created_at: DateTime!
+  deleted_at: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  updated_at: DateTime!
+  wallets: [WalletEntity!]!
+}
+
+type Wallet {
+  balance: Float!
+  closed_at: DateTime
+  created_at: DateTime!
+  id: ID!
+  status: Boolean!
+  transactions: [Transaction!]!
+  updated_at: DateTime!
+  user: User!
 }
 
 type WalletEntity {
@@ -45,12 +175,16 @@ type WalletEntity {
   status: Boolean!
   transactions: [TransactionEntity!]!
   updated_at: DateTime!
+  user: UserEntity!
 }
 
 input WithdrawWalletInput {
-  """Please, input wallet id"""
-  id: ID!
-
   """Please, input sum for deposit"""
   sum: Float!
+
+  """Please, input user id"""
+  userId: ID!
+
+  """Please, input wallet id"""
+  walletId: ID!
 }
