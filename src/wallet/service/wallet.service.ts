@@ -114,8 +114,15 @@ export class WalletService {
         }
     }
 
+    /* 
+        При удаление пользователя не стал перекидывать все на один кошелек, т.к. все они в любом случае будут заморожены
+    */
     async close(closeWallet: IClose): Promise<String> {
         try {
+            const queryRunner = this.connection.createQueryRunner()
+
+            await queryRunner.connect()
+
             const { userId, walletId } = closeWallet
 
             const user = await this.userService.findOne(userId)
@@ -140,10 +147,67 @@ export class WalletService {
                 )
             }
 
-            await this.walletRepository.update(walletId, {
-                status: false,
-                closed_at: new Date(),
-            })
+            const wallets = user.wallets
+                .filter((wallet) => wallet.status !== false)
+                .filter((wallet) => wallet.id !== Number(walletId))
+
+            if (wallets.length === 0) {
+                await this.walletRepository.update(walletId, {
+                    status: false,
+                    closed_at: new Date(),
+                })
+            } else {
+                const closedWalletBalance = wallet.balance
+
+                const activeWallet = wallets.pop()
+
+                const activeWalletBalance =
+                    closedWalletBalance + Number(activeWallet?.balance)
+
+                await queryRunner.startTransaction()
+
+                try {
+                    await queryRunner.manager.update(
+                        WalletEntity,
+                        activeWallet?.id,
+                        {
+                            balance: activeWalletBalance,
+                        },
+                    )
+
+                    await queryRunner.manager.update(WalletEntity, walletId, {
+                        status: false,
+                        closed_at: new Date(),
+                        balance: 0,
+                    })
+
+                    await queryRunner.manager.save(TransactionEntity, {
+                        operation: 'transfer',
+                        sum: closedWalletBalance,
+                        wallet: wallet,
+                        from: wallet.id,
+                        to: activeWallet?.id,
+                    })
+
+                    await queryRunner.manager.save(TransactionEntity, {
+                        operation: 'receipt',
+                        sum: closedWalletBalance,
+                        wallet: activeWallet,
+                        from: wallet.id,
+                        to: activeWallet?.id,
+                    })
+
+                    await queryRunner.commitTransaction()
+                } catch (error) {
+                    await queryRunner.rollbackTransaction()
+
+                    console.log(`Close wallet error: ${error}`)
+
+                    throw error
+                } finally {
+                    await queryRunner.release()
+                }
+            }
 
             return 'Account closed'
         } catch (error) {
@@ -242,6 +306,9 @@ export class WalletService {
         }
     }
 
+    /*
+        Посчитал нужным оставить создание транзакций для каждого кошелька, если перевод идет между своими счетами.
+    */
     async transfer(transferWallet: ITransfer): Promise<Number> {
         try {
             const { from, to, sum } = transferWallet
