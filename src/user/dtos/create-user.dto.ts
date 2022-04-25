@@ -1,4 +1,4 @@
-export interface ICreate {
+export class CreateUserDto {
     name: string
     email: string
 }

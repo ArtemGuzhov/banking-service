@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { WalletEntity } from 'src/wallet/models/wallet.entity'
-import { Connection, IsNull, Not, Repository } from 'typeorm'
-import { ICreate } from '../interfaces/user-service.interface'
+import { Connection, Repository } from 'typeorm'
+import { CreateUserDto } from '../dtos/create-user.dto'
 import { UserEntity } from '../models/user.entity'
 
 @Injectable()
@@ -15,37 +15,11 @@ export class UserService {
 
     // QUERY
 
-    async findAll(filter?: string): Promise<UserEntity[]> {
+    async findAll(): Promise<UserEntity[]> {
         try {
-            const usersWithFilter = async (type?: string) => {
-                if (type === 'remote') {
-                    return await this.userRepository.find({
-                        withDeleted: true,
-                        relations: ['wallets', 'wallets.transactions'],
-                        where: {
-                            deleted_at: Not(IsNull()),
-                        },
-                    })
-                } else {
-                    return await this.userRepository.find({
-                        withDeleted: type === 'active' ? false : true,
-                        relations: ['wallets', 'wallets.transactions'],
-                    })
-                }
-            }
-
-            if (filter === 'active') {
-                return usersWithFilter('active')
-            } else if (filter === 'remote') {
-                return usersWithFilter('remote')
-            } else if (!filter) {
-                return usersWithFilter()
-            } else {
-                throw new HttpException(
-                    `Your filter is not found`,
-                    HttpStatus.NOT_FOUND,
-                )
-            }
+            return await this.userRepository.find({
+                relations: ['wallets', 'wallets.transactions'],
+            })
         } catch (error) {
             console.log(`Server error(UserService: findAll): ${error}`)
 
@@ -74,9 +48,9 @@ export class UserService {
 
     // Mutation
 
-    async create(createUser: ICreate): Promise<UserEntity> {
+    async create(createDto: CreateUserDto): Promise<UserEntity> {
         try {
-            const { email, name } = createUser
+            const { email, name } = createDto
 
             const lowerCaseName = name.toLocaleLowerCase()
 
@@ -113,16 +87,7 @@ export class UserService {
 
             await queryRunner.connect()
 
-            const user = await this.userRepository.findOne({
-                where: {
-                    id,
-                },
-                relations: ['wallets'],
-            })
-
-            if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
-            }
+            const user = await this.findOne(id)
 
             const walletsId = user.wallets
                 .filter((wallet) => wallet.status === true)

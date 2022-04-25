@@ -1,19 +1,9 @@
 import { WalletEntity } from 'src/wallet/models/wallet.entity'
 
-export interface ICreate {
+export class CreateTransactionDto {
     operation: string
     sum: number
     wallet: WalletEntity
     from?: number
     to?: number
 }
-
-// export interface IFilter {
-//     deposit: string
-
-//     withdraw: string
-
-//     transfer: string
-
-//     receipt: string
-// }

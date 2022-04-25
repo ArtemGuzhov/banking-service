@@ -3,14 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { TransactionEntity } from 'src/transaction/models/transaction.entity'
 import { TransactionService } from 'src/transaction/services/transaction.service'
 import { UserEntity } from 'src/user/models/user.entity'
-import { UserService } from 'src/user/service/user.service'
+import { UserService } from 'src/user/services/user.service'
 import { Connection, Repository } from 'typeorm'
-import {
-    IClose,
-    IDeposit,
-    ITransfer,
-    IWithdraw,
-} from '../interfaces/wallet-service.interface'
+import { CloseWalletDto } from '../dtos/close-wallet.dto'
+import { DepositWalletDto } from '../dtos/deposit-wallet.dto'
+import { TransferWalletDto } from '../dtos/transfer-wallet.dto'
+import { WithdrawWalletDto } from '../dtos/withdraw-wallet.dto'
 import { WalletEntity } from '../models/wallet.entity'
 
 @Injectable()
@@ -62,33 +60,11 @@ export class WalletService {
         }
     }
 
-    async findAll(filter?: string): Promise<WalletEntity[]> {
+    async findAll(): Promise<WalletEntity[]> {
         try {
-            const walletsWithFilter = async (status: boolean) => {
-                return await this.walletRepository.find({
-                    where: {
-                        status,
-                    },
-                    relations: ['user', 'transactions'],
-                    withDeleted: true,
-                })
-            }
-
-            if (filter === 'active') {
-                return walletsWithFilter(true)
-            } else if (filter === 'closed') {
-                return walletsWithFilter(false)
-            } else if (!filter) {
-                return await this.walletRepository.find({
-                    relations: ['user', 'transactions'],
-                    withDeleted: true,
-                })
-            } else {
-                throw new HttpException(
-                    'Your filter is not found',
-                    HttpStatus.NOT_FOUND,
-                )
-            }
+            return await this.walletRepository.find({
+                relations: ['user', 'transactions'],
+            })
         } catch (error) {
             console.log(`Server error(WalletService: findAll): ${error}`)
 
@@ -102,10 +78,6 @@ export class WalletService {
         try {
             const user = await this.userService.findOne(id)
 
-            if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
-            }
-
             return this.walletRepository.save({ user })
         } catch (error) {
             console.log(`Server error(WalletService: create): ${error}`)
@@ -114,22 +86,11 @@ export class WalletService {
         }
     }
 
-    /* 
-        При удаление пользователя не стал перекидывать все на один кошелек, т.к. все они в любом случае будут заморожены
-    */
-    async close(closeWallet: IClose): Promise<String> {
+    async close(closeDto: CloseWalletDto): Promise<String> {
         try {
-            const queryRunner = this.connection.createQueryRunner()
+            const { userId, walletId } = closeDto
 
-            await queryRunner.connect()
-
-            const { userId, walletId } = closeWallet
-
-            const user = await this.userService.findOne(userId)
-
-            if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
-            }
+            await this.userService.findOne(userId)
 
             const wallet = await this.findOne(walletId)
 
@@ -147,67 +108,10 @@ export class WalletService {
                 )
             }
 
-            const wallets = user.wallets
-                .filter((wallet) => wallet.status !== false)
-                .filter((wallet) => wallet.id !== Number(walletId))
-
-            if (wallets.length === 0) {
-                await this.walletRepository.update(walletId, {
-                    status: false,
-                    closed_at: new Date(),
-                })
-            } else {
-                const closedWalletBalance = wallet.balance
-
-                const activeWallet = wallets.pop()
-
-                const activeWalletBalance =
-                    closedWalletBalance + Number(activeWallet?.balance)
-
-                await queryRunner.startTransaction()
-
-                try {
-                    await queryRunner.manager.update(
-                        WalletEntity,
-                        activeWallet?.id,
-                        {
-                            balance: activeWalletBalance,
-                        },
-                    )
-
-                    await queryRunner.manager.update(WalletEntity, walletId, {
-                        status: false,
-                        closed_at: new Date(),
-                        balance: 0,
-                    })
-
-                    await queryRunner.manager.save(TransactionEntity, {
-                        operation: 'transfer',
-                        sum: closedWalletBalance,
-                        wallet: wallet,
-                        from: wallet.id,
-                        to: activeWallet?.id,
-                    })
-
-                    await queryRunner.manager.save(TransactionEntity, {
-                        operation: 'receipt',
-                        sum: closedWalletBalance,
-                        wallet: activeWallet,
-                        from: wallet.id,
-                        to: activeWallet?.id,
-                    })
-
-                    await queryRunner.commitTransaction()
-                } catch (error) {
-                    await queryRunner.rollbackTransaction()
-
-                    console.log(`Close wallet error: ${error}`)
-
-                    throw error
-                } finally {
-                    await queryRunner.release()
-                }
-            }
+            await this.walletRepository.update(walletId, {
+                status: false,
+                closed_at: new Date(),
+            })
 
             return 'Account closed'
         } catch (error) {
@@ -217,24 +121,13 @@ export class WalletService {
         }
     }
 
-    async deposit(depositWallet: IDeposit): Promise<Number> {
+    async deposit(depositDto: DepositWalletDto): Promise<Number> {
         try {
-            const { walletId, userId, sum } = depositWallet
+            const { walletId, userId, sum } = depositDto
 
-            const user = await this.userService.findOne(userId)
-
-            if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
-            }
+            await this.userService.findOne(userId)
 
             const wallet = await this.findOne(walletId, userId)
-
-            if (!wallet) {
-                throw new HttpException(
-                    'Wallet not found',
-                    HttpStatus.NOT_FOUND,
-                )
-            }
 
             if (!wallet.status) {
                 throw new HttpException('Account closed', HttpStatus.FORBIDDEN)
@@ -258,24 +151,13 @@ export class WalletService {
         }
     }
 
-    async withdraw(withdrawWallet: IWithdraw): Promise<Number> {
+    async withdraw(withdrawDto: WithdrawWalletDto): Promise<Number> {
         try {
-            const { userId, walletId, sum } = withdrawWallet
+            const { userId, walletId, sum } = withdrawDto
 
-            const user = await this.userService.findOne(userId)
-
-            if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
-            }
+            await this.userService.findOne(userId)
 
             const wallet = await this.findOne(walletId, userId)
-
-            if (!wallet) {
-                throw new HttpException(
-                    'Wallet not found',
-                    HttpStatus.NOT_FOUND,
-                )
-            }
 
             if (!wallet.status) {
                 throw new HttpException('Account closed', HttpStatus.FORBIDDEN)
@@ -309,9 +191,9 @@ export class WalletService {
     /*
         Посчитал нужным оставить создание транзакций для каждого кошелька, если перевод идет между своими счетами.
     */
-    async transfer(transferWallet: ITransfer): Promise<Number> {
+    async transfer(transferDto: TransferWalletDto): Promise<Number> {
         try {
-            const { from, to, sum } = transferWallet
+            const { from, to, sum } = transferDto
 
             const queryRunner = this.connection.createQueryRunner()
 

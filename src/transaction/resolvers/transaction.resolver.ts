@@ -12,15 +12,8 @@ export class TransactionResolver {
         name: 'transactions',
         description: 'Get all transactions.',
     })
-    async transactions(
-        @Args('filter', {
-            nullable: true,
-            description:
-                "Filters: ['deposit', 'withdraw', 'transfer', 'receipt'].",
-        })
-        filter?: string,
-    ): Promise<Transaction[]> {
-        return await this.transactionService.findAll(filter)
+    async transactions(): Promise<Transaction[]> {
+        return await this.transactionService.findAll()
     }
 
     @Query(() => Transaction, {

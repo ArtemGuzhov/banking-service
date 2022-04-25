@@ -1,9 +1,9 @@
 import { Args, Mutation, Resolver, Query } from '@nestjs/graphql'
-import { DepositWalletInput } from 'src/wallet/inputs/deposit-wallet.input'
-import { WithdrawWalletInput } from 'src/wallet/inputs/withdraw-wallet.input'
-import { WalletService } from 'src/wallet/service/wallet.service'
-import { CloseWalletInput } from '../inputs/close-wallet.input'
-import { TransferWalletInput } from '../inputs/transfer-wallet.input'
+import { DepositWalletInput } from 'src/wallet/graphql/inputs/deposit-wallet.input'
+import { WithdrawWalletInput } from 'src/wallet/graphql/inputs/withdraw-wallet.input'
+import { WalletService } from 'src/wallet/services/wallet.service'
+import { CloseWalletInput } from '../graphql/inputs/close-wallet.input'
+import { TransferWalletInput } from '../graphql/inputs/transfer-wallet.input'
 import { Wallet } from '../models/wallet.interface'
 
 @Resolver('wallet')
@@ -26,14 +26,8 @@ export class WalletResolver {
         name: 'wallets',
         description: 'Getting all wallets.',
     })
-    async wallets(
-        @Args('filter', {
-            description: "Filters: ['active', 'closed'].",
-            nullable: true,
-        })
-        filter?: string,
-    ): Promise<Wallet[]> {
-        return await this.walletService.findAll(filter)
+    async wallets(): Promise<Wallet[]> {
+        return await this.walletService.findAll()
     }
 
     // MUTATION
@@ -56,7 +50,7 @@ export class WalletResolver {
     `,
     })
     async close(
-        @Args('closeWallet') closeWalletInput: CloseWalletInput,
+        @Args('closeWalletInput') closeWalletInput: CloseWalletInput,
     ): Promise<String> {
         return await this.walletService.close(closeWalletInput)
     }
@@ -66,7 +60,7 @@ export class WalletResolver {
         description: `Replenishes the user's wallet for a certain amount. The input accepts the amount, user ID and wallet.`,
     })
     async deposit(
-        @Args('depositWallet') depositWalletInput: DepositWalletInput,
+        @Args('depositWalletInput') depositWalletInput: DepositWalletInput,
     ): Promise<Number> {
         return await this.walletService.deposit(depositWalletInput)
     }
@@ -76,7 +70,7 @@ export class WalletResolver {
         description: `Withdraws a certain amount from the user's wallet. The input accepts the amount, user ID and wallet.`,
     })
     async withdraw(
-        @Args('withdrawWallet') withdrawWalletInput: WithdrawWalletInput,
+        @Args('withdrawWalletInput') withdrawWalletInput: WithdrawWalletInput,
     ): Promise<Number> {
         return await this.walletService.withdraw(withdrawWalletInput)
     }
@@ -86,7 +80,7 @@ export class WalletResolver {
         description: `Transferring money from one wallet to another. The input accepts the id of the wallet from which the transfer is to be made and the id of the wallet to which funds and the amount to be transferred should be received.`,
     })
     async transfer(
-        @Args('transferWallet') transferWalletInput: TransferWalletInput,
+        @Args('transferWalletInput') transferWalletInput: TransferWalletInput,
     ): Promise<Number> {
         return await this.walletService.transfer(transferWalletInput)
     }
