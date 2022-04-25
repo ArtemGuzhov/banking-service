@@ -10,6 +10,14 @@ input CloseWalletInput {
   walletId: ID!
 }
 
+input CreateUserInput {
+  """Please, input user email"""
+  email: String!
+
+  """Please, input user name"""
+  name: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -32,10 +40,10 @@ type Mutation {
               Closes the user's wallet. The user ID and wallet ID are received as input.
       
   """
-  close(closeWallet: CloseWalletInput!): String!
+  close(closeWalletInput: CloseWalletInput!): String!
 
   """User creation. Takes name and email as input"""
-  createUser(userCreate: UserCreateInput!): User!
+  createUser(createUserInput: CreateUserInput!): User!
 
   """Creating a user wallet. The user ID is received as input."""
   createWallet(
@@ -49,17 +57,17 @@ type Mutation {
   """
   Replenishes the user's wallet for a certain amount. The input accepts the amount, user ID and wallet.
   """
-  deposit(depositWallet: DepositWalletInput!): Float!
+  deposit(depositWalletInput: DepositWalletInput!): Float!
 
   """
   Transferring money from one wallet to another. The input accepts the id of the wallet from which the transfer is to be made and the id of the wallet to which funds and the amount to be transferred should be received.
   """
-  transfer(transferWallet: TransferWalletInput!): Float!
+  transfer(transferWalletInput: TransferWalletInput!): Float!
 
   """
   Withdraws a certain amount from the user's wallet. The input accepts the amount, user ID and wallet.
   """
-  withdraw(withdrawWallet: WithdrawWalletInput!): Float!
+  withdraw(withdrawWalletInput: WithdrawWalletInput!): Float!
 }
 
 type Query {
@@ -70,19 +78,13 @@ type Query {
   ): Transaction!
 
   """Get all transactions."""
-  transactions(
-    """Filters: ['deposit', 'withdraw', 'transfer', 'receipt']."""
-    filter: String
-  ): [Transaction!]!
+  transactions: [Transaction!]!
 
   """Getting user data by his id."""
   user(id: Float!): User!
 
   """Getting all users."""
-  users(
-    """Filters: ['active', 'remote']."""
-    filter: String
-  ): [User!]!
+  users: [User!]!
 
   """Getting one wallet by its ID."""
   wallet(
@@ -91,10 +93,7 @@ type Query {
   ): Wallet!
 
   """Getting all wallets."""
-  wallets(
-    """Filters: ['active', 'closed']."""
-    filter: String
-  ): [Wallet!]!
+  wallets: [Wallet!]!
 }
 
 type Transaction {
@@ -136,14 +135,6 @@ type User {
   name: String!
   updated_at: DateTime!
   wallets: [Wallet!]!
-}
-
-input UserCreateInput {
-  """Please, input user email"""
-  email: String!
-
-  """Please, input user name"""
-  name: String!
 }
 
 type UserEntity {

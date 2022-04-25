@@ -8,7 +8,7 @@ import {
 } from 'class-validator'
 
 @InputType()
-export class UserCreateInput {
+export class CreateUserInput {
     @Field({ description: 'Please, input user name', name: 'name' })
     @MinLength(1, {
         message: 'The minimum string length for the "name" field is 1.',

@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql'
-import { UserCreateInput } from '../inputs/create-user.input'
+import { CreateUserInput } from '../graphql/inputs/create-user.input'
 import { User } from '../models/user.interface'
-import { UserService } from '../service/user.service'
+import { UserService } from '../services/user.service'
 
 @Resolver('user')
 export class UserResolver {
@@ -10,14 +10,8 @@ export class UserResolver {
     // QUERY
 
     @Query(() => [User], { name: 'users', description: 'Getting all users.' })
-    async users(
-        @Args('filter', {
-            nullable: true,
-            description: "Filters: ['active', 'remote'].",
-        })
-        filter?: string,
-    ): Promise<User[]> {
-        return await this.userService.findAll(filter)
+    async users(): Promise<User[]> {
+        return await this.userService.findAll()
     }
 
     @Query(() => User, {
@@ -35,9 +29,9 @@ export class UserResolver {
         description: 'User creation. Takes name and email as input',
     })
     async createUser(
-        @Args('userCreate') userCreateInput: UserCreateInput,
+        @Args('createUserInput') createUserInput: CreateUserInput,
     ): Promise<User> {
-        return await this.userService.create(userCreateInput)
+        return await this.userService.create(createUserInput)
     }
 
     @Mutation(() => String, {

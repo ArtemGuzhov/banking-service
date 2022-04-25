@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { ICreate } from '../interfaces/transaction-service.interface'
+import { CreateTransactionDto } from '../dtos/create-transaction.dto'
 import { TransactionEntity } from '../models/transaction.entity'
 
 @Injectable()
@@ -13,35 +13,11 @@ export class TransactionService {
 
     // QUERY
 
-    async findAll(filter?: string): Promise<TransactionEntity[]> {
+    async findAll(): Promise<TransactionEntity[]> {
         try {
-            const transactionsWithFilter = async (type: string) => {
-                return await this.transactionRepository.find({
-                    where: {
-                        operation: type,
-                    },
-                    relations: ['wallet', 'wallet.user'],
-                })
-            }
-
-            if (filter === 'deposit') {
-                return transactionsWithFilter('deposit')
-            } else if (filter === 'withdraw') {
-                return transactionsWithFilter('withdraw')
-            } else if (filter === 'transfer') {
-                return transactionsWithFilter('transfer')
-            } else if (filter === 'receipt') {
-                return transactionsWithFilter('receipt')
-            } else if (!filter) {
-                return await this.transactionRepository.find({
-                    relations: ['wallet', 'wallet.user'],
-                })
-            } else {
-                throw new HttpException(
-                    `Your filter is not found`,
-                    HttpStatus.NOT_FOUND,
-                )
-            }
+            return await this.transactionRepository.find({
+                relations: ['wallet', 'wallet.user'],
+            })
         } catch (error) {
             console.log(`Server error(TransactionService: findAll): ${error}`)
 
@@ -75,9 +51,9 @@ export class TransactionService {
 
     // MUTATION
 
-    async create(createTransaction: ICreate): Promise<TransactionEntity> {
+    async create(createDto: CreateTransactionDto): Promise<TransactionEntity> {
         try {
-            const { from, to, sum, operation, wallet } = createTransaction
+            const { from, to, sum, operation, wallet } = createDto
 
             if (from && to) {
                 return await this.transactionRepository.save({
