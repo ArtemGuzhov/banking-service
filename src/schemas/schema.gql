@@ -148,10 +148,11 @@ type UserEntity {
 }
 
 type Wallet {
-  balance: Float!
   closed_at: DateTime
   created_at: DateTime!
   id: ID!
+  incoming: Float!
+  outgoing: Float!
   status: Boolean!
   transactions: [Transaction!]!
   updated_at: DateTime!

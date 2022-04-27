@@ -9,15 +9,19 @@ import {
     OneToMany,
     ManyToOne,
     JoinColumn,
+    AfterLoad,
 } from 'typeorm'
 
-@Entity(`wallet`)
+@Entity(`Wallet`)
 export class WalletEntity {
     @PrimaryGeneratedColumn()
     id: number
 
-    @Column({ default: 0 })
-    balance: number
+    @Column({ default: 0, select: true })
+    incoming: number
+
+    @Column({ default: 0, select: true })
+    outgoing: number
 
     @Column({ default: true })
     status: boolean
@@ -39,4 +43,11 @@ export class WalletEntity {
         cascade: true,
     })
     transactions: TransactionEntity[]
+
+    balance: number
+
+    @AfterLoad()
+    updateBalance() {
+        this.balance = this.incoming - this.outgoing
+    }
 }

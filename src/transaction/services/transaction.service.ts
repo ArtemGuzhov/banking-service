@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
@@ -6,10 +6,14 @@ import { TransactionEntity } from '../models/transaction.entity'
 
 @Injectable()
 export class TransactionService {
+    logger: Logger
+
     constructor(
         @InjectRepository(TransactionEntity)
         private readonly transactionRepository: Repository<TransactionEntity>,
-    ) {}
+    ) {
+        this.logger = new Logger(TransactionService.name)
+    }
 
     // QUERY
 
@@ -19,7 +23,7 @@ export class TransactionService {
                 relations: ['wallet', 'wallet.user'],
             })
         } catch (error) {
-            console.log(`Server error(TransactionService: findAll): ${error}`)
+            this.logger.error(error)
 
             throw error
         }
@@ -43,7 +47,7 @@ export class TransactionService {
 
             return transaction
         } catch (error) {
-            console.log(`Server error(TransactionService: findOne): ${error}`)
+            this.logger.error(error)
 
             throw error
         }
@@ -71,7 +75,7 @@ export class TransactionService {
                 })
             }
         } catch (error) {
-            console.log(`Server error(TransactionService: create): ${error}`)
+            this.logger.error(error)
 
             throw error
         }

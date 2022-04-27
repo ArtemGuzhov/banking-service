@@ -1,17 +1,19 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { WalletEntity } from 'src/wallet/models/wallet.entity'
-import { Connection, Repository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { CreateUserDto } from '../dtos/create-user.dto'
 import { UserEntity } from '../models/user.entity'
 
 @Injectable()
 export class UserService {
+    logger: Logger
+
     constructor(
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
-        private connection: Connection,
-    ) {}
+    ) {
+        this.logger = new Logger(UserService.name)
+    }
 
     // QUERY
 
@@ -21,7 +23,7 @@ export class UserService {
                 relations: ['wallets', 'wallets.transactions'],
             })
         } catch (error) {
-            console.log(`Server error(UserService: findAll): ${error}`)
+            this.logger.error(error)
 
             throw error
         }
@@ -40,7 +42,7 @@ export class UserService {
 
             return user
         } catch (error) {
-            console.log(`Server error(UserService: findOne): ${error}`)
+            this.logger.error(error)
 
             throw error
         }
@@ -54,9 +56,6 @@ export class UserService {
 
             const lowerCaseName = name.toLocaleLowerCase()
 
-            /* 
-                Проверил по своим двум почтовым ящикам, почтовый адрес не чувствителен к регистру, что доменное имя, что имя почты.
-            */
             const lowerCaseEmail = email.toLowerCase()
 
             const userExist = await this.userRepository.findOne({
@@ -75,7 +74,7 @@ export class UserService {
                 email: lowerCaseEmail,
             })
         } catch (error) {
-            console.log(`Server error(UserService: create): ${error}`)
+            this.logger.error(error)
 
             throw error
         }
@@ -83,42 +82,13 @@ export class UserService {
 
     async delete(id: number): Promise<String> {
         try {
-            const queryRunner = this.connection.createQueryRunner()
+            await this.findOne(id)
 
-            await queryRunner.connect()
-
-            const user = await this.findOne(id)
-
-            const walletsId = user.wallets
-                .filter((wallet) => wallet.status === true)
-                .map((wallet) => wallet.id)
-
-            await queryRunner.startTransaction()
-
-            try {
-                walletsId.forEach(async (id) => {
-                    await queryRunner.manager.update(WalletEntity, id, {
-                        closed_at: new Date(),
-                        status: false,
-                    })
-                })
-
-                await queryRunner.manager.softRemove(UserEntity, { id })
-
-                await queryRunner.commitTransaction()
-            } catch (error) {
-                await queryRunner.rollbackTransaction()
-
-                console.log(`Deleted user error: ${error}`)
-
-                throw error
-            } finally {
-                await queryRunner.release()
-            }
+            await this.userRepository.softRemove({ id })
 
             return 'User has been deleted'
         } catch (error) {
-            console.log(`Server error(UserService: delete): ${error}`)
+            this.logger.error(error)
 
             throw error
         }

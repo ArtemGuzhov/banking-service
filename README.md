@@ -1,17 +1,16 @@
-
-
-
+# NestJS banking service application
 
 ## Features
-* Node v14.17.1
-* [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0-beta.3/)
-* ESLint
-* Launch scripts (prebuild, build, start, test, etc.)
-* Precommit prettier
-* VSCode debug launcher
-* Strict ruled tsconfig.json
-* Migrations
-* Docker compose with postgres
+
+-   Node v14.17.1
+-   [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0-beta.3/)
+-   ESLint
+-   Launch scripts (prebuild, build, start, test, etc.)
+-   Precommit prettier
+-   VSCode debug launcher
+-   Strict ruled tsconfig.json
+-   Migrations
+-   Docker compose with postgres
 
 ## Installation
 
@@ -23,7 +22,7 @@ $ npm install
 
 ```bash
 # if your default nodeJS version is not v14.17.1
-$ nvm use 
+$ nvm use
 
 # development
 $ npm run start
@@ -47,4 +46,3 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
-"# banking-service" 
