@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { WalletEntity } from 'src/wallet/models/wallet.entity'
+import { Connection, Repository } from 'typeorm'
 import { CreateUserDto } from '../dtos/create-user.dto'
 import { UserEntity } from '../models/user.entity'
 
@@ -11,6 +12,7 @@ export class UserService {
     constructor(
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
+        private connection: Connection,
     ) {
         this.logger = new Logger(UserService.name)
     }
@@ -21,6 +23,9 @@ export class UserService {
         try {
             return await this.userRepository.find({
                 relations: ['wallets', 'wallets.transactions'],
+                order: {
+                    id: 'ASC',
+                },
             })
         } catch (error) {
             this.logger.error(error)
@@ -82,9 +87,36 @@ export class UserService {
 
     async delete(id: number): Promise<String> {
         try {
-            await this.findOne(id)
+            const queryRunner = this.connection.createQueryRunner()
 
-            await this.userRepository.softRemove({ id })
+            await queryRunner.connect()
+
+            const user = await this.findOne(id)
+
+            const walletsId = user.wallets
+                .filter((wallet) => wallet.status)
+                .map((wallet) => wallet.id)
+
+            await queryRunner.startTransaction()
+
+            try {
+                walletsId.forEach(async (id) => {
+                    await queryRunner.manager.update(WalletEntity, id, {
+                        closed_at: new Date(),
+                        status: false,
+                    })
+                })
+
+                await queryRunner.manager.softRemove(UserEntity, { id })
+
+                await queryRunner.commitTransaction()
+            } catch (error) {
+                await queryRunner.rollbackTransaction()
+
+                throw error
+            } finally {
+                await queryRunner.release()
+            }
 
             return 'User has been deleted'
         } catch (error) {

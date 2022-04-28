@@ -106,16 +106,6 @@ type Transaction {
   wallet: Wallet!
 }
 
-type TransactionEntity {
-  created_at: DateTime!
-  from: Float
-  id: ID!
-  operation: String!
-  sum: Float!
-  to: Float
-  wallet: WalletEntity!
-}
-
 input TransferWalletInput {
   """Please, input sender`s wallet id"""
   from: ID!
@@ -137,37 +127,15 @@ type User {
   wallets: [Wallet!]!
 }
 
-type UserEntity {
-  created_at: DateTime!
-  deleted_at: DateTime!
-  email: String!
-  id: ID!
-  name: String!
-  updated_at: DateTime!
-  wallets: [WalletEntity!]!
-}
-
 type Wallet {
-  closed_at: DateTime
-  created_at: DateTime!
-  id: ID!
-  incoming: Float!
-  outgoing: Float!
-  status: Boolean!
-  transactions: [Transaction!]!
-  updated_at: DateTime!
-  user: User!
-}
-
-type WalletEntity {
   balance: Float!
   closed_at: DateTime
   created_at: DateTime!
   id: ID!
   status: Boolean!
-  transactions: [TransactionEntity!]!
+  transactions: [Transaction!]!
   updated_at: DateTime!
-  user: UserEntity!
+  user: User!
 }
 
 input WithdrawWalletInput {

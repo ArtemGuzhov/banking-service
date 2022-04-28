@@ -21,6 +21,9 @@ export class TransactionService {
         try {
             return await this.transactionRepository.find({
                 relations: ['wallet', 'wallet.user'],
+                order: {
+                    id: 'ASC',
+                },
             })
         } catch (error) {
             this.logger.error(error)

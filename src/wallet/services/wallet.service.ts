@@ -95,15 +95,29 @@ export class WalletService {
         try {
             const { userId, walletId } = closeDto
 
-            await this.userService.findOne(userId)
+            const user = await this.userService.findOne(userId)
 
-            const wallet = await this.findOne(walletId)
+            const wallet = await this.findOne(walletId, userId)
+
+            const wallets = user.wallets.filter((wallet) => wallet.status)
 
             if (!wallet.status) {
                 throw new HttpException(
                     'Account already closed',
                     HttpStatus.FORBIDDEN,
                 )
+            }
+
+            if (wallets.length > 1) {
+                const depositedWalletId = wallets.filter(
+                    (wallet) => wallet.id !== Number(walletId),
+                )[0]!['id']
+
+                await this.transfer({
+                    from: walletId,
+                    to: depositedWalletId,
+                    sum: wallet.balance,
+                })
             }
 
             await this.walletRepository.update(walletId, {
@@ -267,6 +281,13 @@ export class WalletService {
     async transfer(transferDto: TransferWalletDto): Promise<Number> {
         try {
             const { from, to, sum } = transferDto
+
+            if (from === to) {
+                throw new HttpException(
+                    'You can not transfer for the same wallets',
+                    HttpStatus.FORBIDDEN,
+                )
+            }
 
             const queryRunner = this.connection.createQueryRunner()
 
