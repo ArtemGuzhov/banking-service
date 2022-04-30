@@ -4,6 +4,27 @@ volumes:
   db:
 
 services:
+  nestjs_transaction:
+    build:
+      context: ./services/transaction
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
+      - rabbitmq
+  
+  nestjs_wallet_user:
+    build:
+      context: ./services/wallet_user
+      dockerfile: Dockerfile
+    ports:
+      - 7000:7000
+    depends_on:
+      - db
+      - rabbitmq
+ 
+  
   db:
     image: postgres:13.1
     restart: always
@@ -16,12 +37,24 @@ services:
       - ./postgresql.conf:/etc/postgresql/postgresql.conf
     ports:
       - 5432:5432
+
   adminer:
     image: adminer
     restart: always
-    depends_on:
-      - db
     ports:
       - 8080:8080
+    depends_on:
+      - db
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=user
+    ports:
+      - 15672:15672
+      - 5672:5672
 
+  
   

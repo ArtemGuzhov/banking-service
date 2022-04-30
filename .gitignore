@@ -1,5 +1,8 @@
 # compiled output
-/dist
+/services/wallet_user/dist
+/services/transaction/dist
+/services/wallet_user/node_modules
+/services/transaction/node_modules
 /node_modules
 
 # Logs
