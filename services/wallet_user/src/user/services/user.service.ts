@@ -30,7 +30,7 @@ export class UserService {
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -42,14 +42,17 @@ export class UserService {
             })
 
             if (!user) {
-                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
+                throw {
+                    message: 'User not found',
+                    status: HttpStatus.NOT_FOUND,
+                }
             }
 
             return user
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new HttpException(error.message, error.status)
         }
     }
 
@@ -68,10 +71,10 @@ export class UserService {
             })
 
             if (userExist) {
-                throw new HttpException(
-                    'User already exists',
-                    HttpStatus.CONFLICT,
-                )
+                throw {
+                    message: 'User already exists',
+                    status: HttpStatus.CONFLICT,
+                }
             }
 
             return await this.userRepository.save({
@@ -81,7 +84,7 @@ export class UserService {
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new HttpException(error.message, error.status)
         }
     }
 
@@ -113,7 +116,10 @@ export class UserService {
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
-                throw error
+                throw {
+                    message: 'Error while deleting a user',
+                    status: HttpStatus.CONFLICT,
+                }
             } finally {
                 await queryRunner.release()
             }
@@ -122,7 +128,7 @@ export class UserService {
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new HttpException(error.message, error.status)
         }
     }
 }

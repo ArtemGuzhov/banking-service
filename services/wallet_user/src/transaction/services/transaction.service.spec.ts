@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { plainToClass } from 'class-transformer'
-import { TransactionEntity } from '../models/transaction.entity'
+import { TransactionDto } from '../dtos/outputs/transaction.dto'
 import { TransactionService } from './transaction.service'
 
-const arrayTransactions: TransactionEntity[] = [
-    new TransactionEntity(),
-    new TransactionEntity(),
-    new TransactionEntity(),
+const arrayTransactions: TransactionDto[] = [
+    new TransactionDto(),
+    new TransactionDto(),
+    new TransactionDto(),
 ]
 
-const oneTransaction: TransactionEntity = plainToClass(TransactionEntity, {
+const oneTransaction: TransactionDto = plainToClass(TransactionDto, {
     id: 1,
     operation: 'withdraw',
     sum: 100,
@@ -30,7 +30,7 @@ describe('TransactionService', () => {
             providers: [
                 TransactionService,
                 {
-                    provide: getRepositoryToken(TransactionEntity),
+                    provide: getRepositoryToken(TransactionDto),
                     useValue: mockedRepo,
                 },
             ],

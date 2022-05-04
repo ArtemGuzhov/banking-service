@@ -4,6 +4,38 @@ volumes:
   db:
 
 services:
+  db:
+    image: postgres:13.1
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - POSTGRES_MULTIPLE_DATABASES="Wallet_User","Transaction"
+    volumes:
+      - ./docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
+      - ./db:/var/lib/postgresql/data
+      
+    ports:
+      - 5432:5432
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=user
+    ports:
+      - 15672:15672
+      - 5672:5672
+  
   nestjs_transaction:
     build:
       context: ./services/transaction
@@ -23,38 +55,6 @@ services:
     depends_on:
       - db
       - rabbitmq
- 
-  
-  db:
-    image: postgres:13.1
-    restart: always
-    environment:
-      POSTGRES_DB: bank
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: user
-    volumes:
-      - db:/var/lib/postgresql/data
-      - ./postgresql.conf:/etc/postgresql/postgresql.conf
-    ports:
-      - 5432:5432
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
-    depends_on:
-      - db
-  
-  rabbitmq:
-    image: rabbitmq:3-management
-    restart: always
-    environment:
-      - RABBITMQ_DEFAULT_USER=user
-      - RABBITMQ_DEFAULT_PASS=user
-    ports:
-      - 15672:15672
-      - 5672:5672
 
   
   

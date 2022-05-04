@@ -133,6 +133,9 @@ type Wallet {
   created_at: DateTime!
   id: ID!
   status: Boolean!
+
+  """Allows you to get a list of wallet transactions"""
+  transactions: [Transaction!]!
   updated_at: DateTime!
   user: User!
 }

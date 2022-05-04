@@ -1,7 +1,9 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
+import { RpcException } from '@nestjs/microservices'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
+import { FindAllTransactionsDto } from '../dtos/find-all-transactions'
 import { TransactionEntity } from '../models/transaction.entity'
 
 @Injectable()
@@ -17,17 +19,32 @@ export class TransactionService {
 
     // QUERY
 
-    async findAll(): Promise<TransactionEntity[]> {
+    async findAll(
+        findAllDto: FindAllTransactionsDto,
+    ): Promise<TransactionEntity[]> {
         try {
-            return await this.transactionRepository.find({
-                order: {
-                    id: 'ASC',
-                },
-            })
+            const { id } = findAllDto
+
+            const transactions = id
+                ? await this.transactionRepository.find({
+                      where: {
+                          wallet_id: id,
+                      },
+                      order: {
+                          id: 'ASC',
+                      },
+                  })
+                : await this.transactionRepository.find({
+                      order: {
+                          id: 'ASC',
+                      },
+                  })
+
+            return transactions
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new RpcException(error)
         }
     }
 
@@ -40,17 +57,14 @@ export class TransactionService {
             })
 
             if (!transaction) {
-                throw new HttpException(
-                    'Transaction not found',
-                    HttpStatus.NOT_FOUND,
-                )
+                throw 'Transaction not found'
             }
 
             return transaction
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new RpcException(error)
         }
     }
 
@@ -60,15 +74,7 @@ export class TransactionService {
         try {
             const { from, to, sum, operation, wallet_id } = createDto
 
-            // if (operation) {
-            //     throw new HttpException(
-            //         'Transaction not found',
-            //         HttpStatus.NOT_FOUND,
-            //     )
-            // }
-
             if (from && to) {
-                this.logger.debug('CREATING A TRANSACTION RECORD')
                 return await this.transactionRepository.save({
                     operation,
                     sum,
@@ -77,7 +83,6 @@ export class TransactionService {
                     to,
                 })
             } else {
-                this.logger.debug('CREATING A TRANSACTION RECORD')
                 return await this.transactionRepository.save({
                     operation,
                     sum,
@@ -87,7 +92,7 @@ export class TransactionService {
         } catch (error) {
             this.logger.error(error)
 
-            throw error
+            throw new RpcException(error)
         }
     }
 }

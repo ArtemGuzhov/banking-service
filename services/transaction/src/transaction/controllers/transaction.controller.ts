@@ -1,6 +1,7 @@
 import { Controller, Logger } from '@nestjs/common'
 import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
+import { FindAllTransactionsDto } from '../dtos/find-all-transactions'
 import { FindTransactionDto } from '../dtos/find-transaction.dto'
 import { TransactionService } from '../services/transaction.service'
 
@@ -12,12 +13,12 @@ export class TransactionController {
         this.logger = new Logger(TransactionController.name)
     }
 
-    @MessagePattern('rabbit-mq-producer')
+    @MessagePattern('producer-create')
     async create(
         @Payload() data: CreateTransactionDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug({ ...data })
+        this.logger.debug('producer-create')
 
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
@@ -26,26 +27,26 @@ export class TransactionController {
         return await this.transactionService.create(data)
     }
 
-    @MessagePattern('rabbit-mq-producer-2')
+    @MessagePattern('producer-find-all')
     async findAll(
-        @Payload() data: CreateTransactionDto,
+        @Payload() data: FindAllTransactionsDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug({ ...data })
+        this.logger.debug('producer-find-all')
 
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
 
-        return await this.transactionService.findAll()
+        return await this.transactionService.findAll(data)
     }
 
-    @MessagePattern('rabbit-mq-producer-3')
+    @MessagePattern('producer-find-one')
     async findOne(
         @Payload() data: FindTransactionDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug({ ...data })
+        this.logger.debug('producer-find-one')
 
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()

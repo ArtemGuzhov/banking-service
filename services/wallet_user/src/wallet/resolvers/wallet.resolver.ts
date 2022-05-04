@@ -1,4 +1,13 @@
-import { Args, Resolver, Query, Mutation } from '@nestjs/graphql'
+import {
+    Args,
+    Resolver,
+    Query,
+    Mutation,
+    ResolveField,
+    Parent,
+} from '@nestjs/graphql'
+import { Transaction } from 'src/transaction/models/transaction.interface'
+import { TransactionService } from 'src/transaction/services/transaction.service'
 import { WalletService } from 'src/wallet/services/wallet.service'
 import { CloseWalletInput } from '../graphql/inputs/close-wallet.input'
 import { DepositWalletInput } from '../graphql/inputs/deposit-wallet.input'
@@ -6,9 +15,12 @@ import { TransferWalletInput } from '../graphql/inputs/transfer-wallet.input'
 import { WithdrawWalletInput } from '../graphql/inputs/withdraw-wallet.input'
 import { Wallet } from '../models/wallet.interface'
 
-@Resolver('wallet')
+@Resolver(() => Wallet)
 export class WalletResolver {
-    constructor(private readonly walletService: WalletService) {}
+    constructor(
+        private readonly walletService: WalletService,
+        private readonly transactionService: TransactionService,
+    ) {}
 
     // QUERY
 
@@ -28,6 +40,16 @@ export class WalletResolver {
     })
     async wallets(): Promise<Wallet[]> {
         return await this.walletService.findAll()
+    }
+
+    @ResolveField(() => [Transaction], {
+        name: 'transactions',
+        description: 'Allows you to get a list of wallet transactions',
+    })
+    async transactions(@Parent() wallet: Wallet) {
+        const { id } = wallet
+
+        return this.transactionService.findAll(id)
     }
 
     // MUTATION

@@ -1,4 +1,4 @@
-# NestJS banking service application
+# Wallet and User service
 
 ## Features
 

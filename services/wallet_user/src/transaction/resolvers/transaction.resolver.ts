@@ -2,7 +2,7 @@ import { Args, Resolver, Query } from '@nestjs/graphql'
 import { TransactionService } from 'src/transaction/services/transaction.service'
 import { Transaction } from '../models/transaction.interface'
 
-@Resolver('transaction')
+@Resolver(() => Transaction)
 export class TransactionResolver {
     constructor(private readonly transactionService: TransactionService) {}
 
