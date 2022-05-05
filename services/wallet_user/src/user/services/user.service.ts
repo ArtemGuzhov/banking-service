@@ -7,15 +7,13 @@ import { UserEntity } from '../models/user.entity'
 
 @Injectable()
 export class UserService {
-    logger: Logger
+    private readonly _logger = new Logger(UserService.name)
 
     constructor(
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
         private connection: Connection,
-    ) {
-        this.logger = new Logger(UserService.name)
-    }
+    ) {}
 
     // QUERY
 
@@ -28,9 +26,9 @@ export class UserService {
                 },
             })
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR)
+            throw error
         }
     }
 
@@ -42,17 +40,14 @@ export class UserService {
             })
 
             if (!user) {
-                throw {
-                    message: 'User not found',
-                    status: HttpStatus.NOT_FOUND,
-                }
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND)
             }
 
             return user
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -71,10 +66,10 @@ export class UserService {
             })
 
             if (userExist) {
-                throw {
-                    message: 'User already exists',
-                    status: HttpStatus.CONFLICT,
-                }
+                throw new HttpException(
+                    'User already exists',
+                    HttpStatus.CONFLICT,
+                )
             }
 
             return await this.userRepository.save({
@@ -82,9 +77,9 @@ export class UserService {
                 email: lowerCaseEmail,
             })
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -116,19 +111,19 @@ export class UserService {
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
-                throw {
-                    message: 'Error while deleting a user',
-                    status: HttpStatus.CONFLICT,
-                }
+                throw new HttpException(
+                    'Error while deleting a user',
+                    HttpStatus.CONFLICT,
+                )
             } finally {
                 await queryRunner.release()
             }
 
             return 'User has been deleted'
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 }

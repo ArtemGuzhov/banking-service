@@ -1,5 +1,7 @@
 import { Transport } from '@nestjs/microservices'
 
+// rabbitmq
+
 export const rabbitMqConfig = {
     transport: Transport.RMQ,
     options: {

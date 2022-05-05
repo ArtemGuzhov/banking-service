@@ -13,7 +13,7 @@ services:
       - POSTGRES_MULTIPLE_DATABASES="Wallet_User","Transaction"
     volumes:
       - ./docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
-      - ./db:/var/lib/postgresql/data
+      
       
     ports:
       - 5432:5432
@@ -35,6 +35,16 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
+
+  nestjs_wallet_user:
+    build:
+      context: ./services/wallet_user
+      dockerfile: Dockerfile
+    ports:
+      - 7000:7000
+    depends_on:
+      - db
+      - rabbitmq
   
   nestjs_transaction:
     build:
@@ -46,15 +56,7 @@ services:
       - db
       - rabbitmq
   
-  nestjs_wallet_user:
-    build:
-      context: ./services/wallet_user
-      dockerfile: Dockerfile
-    ports:
-      - 7000:7000
-    depends_on:
-      - db
-      - rabbitmq
+  
 
   
   

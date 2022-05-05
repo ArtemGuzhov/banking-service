@@ -1,12 +1,6 @@
-import {
-    HttpException,
-    HttpStatus,
-    Inject,
-    Injectable,
-    Logger,
-} from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
-import { timeout } from 'rxjs'
+import { lastValueFrom, timeout } from 'rxjs'
 import { CreateTransactionDto } from 'src/wallet/dtos/create-transaction.dto'
 import { FindTransactionDto } from '../dtos/inputs/find-transaction.dto'
 import { TransactionDto } from '../dtos/outputs/transaction.dto'
@@ -17,13 +11,11 @@ interface FindData {
 
 @Injectable()
 export class TransactionService {
-    logger: Logger
+    private readonly _logger = new Logger(TransactionService.name)
 
     constructor(
         @Inject('rabbit-mq-module') private readonly client: ClientProxy,
-    ) {
-        this.logger = new Logger(TransactionService.name)
-    }
+    ) {}
 
     // QUERY
 
@@ -35,47 +27,35 @@ export class TransactionService {
                 data['id'] = id
             }
 
-            const transactions = await this.client
+            const source$ = this.client
                 .send<TransactionDto[], any>('producer-find-all', data)
                 .pipe(timeout(5000))
-                .toPromise()
 
-            if (!transactions) {
-                throw {
-                    message: 'Transactions not found',
-                    status: HttpStatus.NOT_FOUND,
-                }
-            }
+            const transactions = await lastValueFrom(source$)
 
             return transactions
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
     async findOne(id: number): Promise<TransactionDto> {
         try {
-            const transaction = await this.client
+            const sourse$ = this.client
                 .send<TransactionDto, FindTransactionDto>('producer-find-one', {
                     id,
                 })
                 .pipe(timeout(5000))
-                .toPromise()
 
-            if (!transaction) {
-                throw {
-                    message: 'Transaction not found',
-                    status: HttpStatus.NOT_FOUND,
-                }
-            }
+            const transaction = await lastValueFrom(sourse$)
 
             return transaction
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -84,7 +64,7 @@ export class TransactionService {
             const { from, to, sum, operation, wallet_id } = createDto
 
             if (from && to) {
-                const transaction = await this.client
+                const sourse$ = this.client
                     .send<TransactionDto, CreateTransactionDto>(
                         'producer-create',
                         {
@@ -96,18 +76,12 @@ export class TransactionService {
                         },
                     )
                     .pipe(timeout(5000))
-                    .toPromise()
 
-                if (!transaction) {
-                    throw new HttpException(
-                        'Connect error',
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                    )
-                }
+                const transaction = await lastValueFrom(sourse$)
 
                 return transaction
             } else {
-                const transaction = await this.client
+                const sourse$ = this.client
                     .send<TransactionDto, CreateTransactionDto>(
                         'producer-create',
                         {
@@ -117,19 +91,13 @@ export class TransactionService {
                         },
                     )
                     .pipe(timeout(5000))
-                    .toPromise()
 
-                if (!transaction) {
-                    throw new HttpException(
-                        'Connect error',
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                    )
-                }
+                const transaction = await lastValueFrom(sourse$)
 
                 return transaction
             }
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
             throw error
         }

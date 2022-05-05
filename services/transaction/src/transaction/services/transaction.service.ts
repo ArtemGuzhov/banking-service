@@ -8,14 +8,12 @@ import { TransactionEntity } from '../models/transaction.entity'
 
 @Injectable()
 export class TransactionService {
-    logger: Logger
+    private readonly _logger = new Logger(TransactionService.name)
 
     constructor(
         @InjectRepository(TransactionEntity)
         private readonly transactionRepository: Repository<TransactionEntity>,
-    ) {
-        this.logger = new Logger(TransactionService.name)
-    }
+    ) {}
 
     // QUERY
 
@@ -42,7 +40,7 @@ export class TransactionService {
 
             return transactions
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
             throw new RpcException(error)
         }
@@ -57,14 +55,14 @@ export class TransactionService {
             })
 
             if (!transaction) {
-                throw 'Transaction not found'
+                throw new RpcException('Transaction not found')
             }
 
             return transaction
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new RpcException(error)
+            throw error
         }
     }
 
@@ -90,7 +88,7 @@ export class TransactionService {
                 })
             }
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
             throw new RpcException(error)
         }

@@ -12,7 +12,7 @@ import { WalletEntity } from '../models/wallet.entity'
 
 @Injectable()
 export class WalletService {
-    logger: Logger
+    private readonly _logger = new Logger(WalletService.name)
 
     constructor(
         @InjectRepository(WalletEntity)
@@ -20,9 +20,7 @@ export class WalletService {
         private readonly userService: UserService,
         private connection: Connection,
         private readonly transactionService: TransactionService,
-    ) {
-        this.logger = new Logger(WalletService.name)
-    }
+    ) {}
 
     // QUERY
 
@@ -49,17 +47,17 @@ export class WalletService {
             )
 
             if (!wallet) {
-                throw {
-                    message: 'Wallet not found',
-                    status: HttpStatus.NOT_FOUND,
-                }
+                throw new HttpException(
+                    'Wallet not found',
+                    HttpStatus.NOT_FOUND,
+                )
             }
 
             return wallet
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -72,9 +70,9 @@ export class WalletService {
                 },
             })
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -86,9 +84,9 @@ export class WalletService {
 
             return this.walletRepository.save({ user })
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -103,10 +101,10 @@ export class WalletService {
             const wallets = user.wallets.filter((wallet) => wallet.status)
 
             if (!wallet.status) {
-                throw {
-                    message: 'Account already closed',
-                    status: HttpStatus.FORBIDDEN,
-                }
+                throw new HttpException(
+                    'Account already closed',
+                    HttpStatus.FORBIDDEN,
+                )
             }
 
             if (wallets.length > 1) {
@@ -128,9 +126,9 @@ export class WalletService {
 
             return 'Account closed'
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -157,17 +155,17 @@ export class WalletService {
                 })
 
                 if (!wallet) {
-                    throw {
-                        message: 'Wallet not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 if (!wallet.status) {
-                    throw {
-                        message: 'Account closed',
-                        status: HttpStatus.FORBIDDEN,
-                    }
+                    throw new HttpException(
+                        'Account closed',
+                        HttpStatus.FORBIDDEN,
+                    )
                 }
 
                 const transaction = await this.transactionService.create({
@@ -188,17 +186,14 @@ export class WalletService {
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
-                throw {
-                    message: 'Error when making a deposit',
-                    status: HttpStatus.CONFLICT,
-                }
+                throw new HttpException(error, HttpStatus.CONFLICT)
             } finally {
                 await queryRunner.release()
             }
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -225,17 +220,17 @@ export class WalletService {
                 })
 
                 if (!wallet) {
-                    throw {
-                        message: 'Wallet not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 if (!wallet.status) {
-                    throw {
-                        message: 'Account closed',
-                        status: HttpStatus.FORBIDDEN,
-                    }
+                    throw new HttpException(
+                        'Account closed',
+                        HttpStatus.FORBIDDEN,
+                    )
                 }
 
                 const currentBalance = wallet.incoming - wallet.outgoing
@@ -265,17 +260,14 @@ export class WalletService {
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
-                throw {
-                    message: 'Withdrawal error',
-                    status: HttpStatus.CONFLICT,
-                }
+                throw new HttpException(error, HttpStatus.CONFLICT)
             } finally {
                 await queryRunner.release()
             }
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 
@@ -284,10 +276,10 @@ export class WalletService {
             const { from, to, sum } = transferDto
 
             if (from === to) {
-                throw {
-                    message: 'You can not transfer for the same wallets',
-                    status: HttpStatus.FORBIDDEN,
-                }
+                throw new HttpException(
+                    'You can not transfer for the same wallets',
+                    HttpStatus.FORBIDDEN,
+                )
             }
 
             const queryRunner = this.connection.createQueryRunner()
@@ -308,17 +300,17 @@ export class WalletService {
                 )
 
                 if (!senderWallet) {
-                    throw {
-                        message: 'Sender`s wallet not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Sender`s wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 if (!senderWallet.status) {
-                    throw {
-                        message: 'Sender`s wallet closed',
-                        status: HttpStatus.FORBIDDEN,
-                    }
+                    throw new HttpException(
+                        'Sender`s wallet closed',
+                        HttpStatus.FORBIDDEN,
+                    )
                 }
 
                 const sender = await queryRunner.manager.findOne(UserEntity, {
@@ -328,10 +320,10 @@ export class WalletService {
                 })
 
                 if (!sender) {
-                    throw {
-                        message: 'Sender wallet user not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Sender wallet user not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 const recipientWallet = await queryRunner.manager.findOne(
@@ -345,17 +337,17 @@ export class WalletService {
                 )
 
                 if (!recipientWallet) {
-                    throw {
-                        message: 'Recipient`s wallet not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Recipient`s wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 if (!recipientWallet.status) {
-                    throw {
-                        message: 'Recipient`s wallet closed',
-                        status: HttpStatus.FORBIDDEN,
-                    }
+                    throw new HttpException(
+                        'Recipient`s wallet closed',
+                        HttpStatus.FORBIDDEN,
+                    )
                 }
 
                 const recipient = await queryRunner.manager.findOne(
@@ -368,20 +360,20 @@ export class WalletService {
                 )
 
                 if (!recipient) {
-                    throw {
-                        message: 'Recipient wallet user not found',
-                        status: HttpStatus.NOT_FOUND,
-                    }
+                    throw new HttpException(
+                        'Recipient wallet user not found',
+                        HttpStatus.NOT_FOUND,
+                    )
                 }
 
                 const currentSenderBalance =
                     senderWallet.incoming - senderWallet.outgoing
 
                 if (currentSenderBalance < sum) {
-                    throw {
-                        message: 'Insufficient funds',
-                        status: HttpStatus.FORBIDDEN,
-                    }
+                    throw new HttpException(
+                        'Insufficient funds',
+                        HttpStatus.FORBIDDEN,
+                    )
                 }
 
                 const moneyTransfer = {
@@ -423,17 +415,14 @@ export class WalletService {
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
-                throw {
-                    message: 'Withdrawal error',
-                    status: HttpStatus.CONFLICT,
-                }
+                throw new HttpException(error, HttpStatus.FORBIDDEN)
             } finally {
                 await queryRunner.release()
             }
         } catch (error) {
-            this.logger.error(error)
+            this._logger.error(error, error.stack)
 
-            throw new HttpException(error.message, error.status)
+            throw error
         }
     }
 }

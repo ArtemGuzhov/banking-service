@@ -1,4 +1,4 @@
-import { Controller, Logger } from '@nestjs/common'
+import { Controller } from '@nestjs/common'
 import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
 import { FindAllTransactionsDto } from '../dtos/find-all-transactions'
@@ -7,19 +7,13 @@ import { TransactionService } from '../services/transaction.service'
 
 @Controller('transaction')
 export class TransactionController {
-    logger: Logger
-
-    constructor(private readonly transactionService: TransactionService) {
-        this.logger = new Logger(TransactionController.name)
-    }
+    constructor(private readonly transactionService: TransactionService) {}
 
     @MessagePattern('producer-create')
     async create(
         @Payload() data: CreateTransactionDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug('producer-create')
-
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
@@ -32,8 +26,6 @@ export class TransactionController {
         @Payload() data: FindAllTransactionsDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug('producer-find-all')
-
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
@@ -46,8 +38,6 @@ export class TransactionController {
         @Payload() data: FindTransactionDto,
         @Ctx() context: RmqContext,
     ) {
-        this.logger.debug('producer-find-one')
-
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
