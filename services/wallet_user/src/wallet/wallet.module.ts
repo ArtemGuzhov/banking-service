@@ -13,5 +13,6 @@ import { TransactionModule } from 'src/transaction/transaction.module'
         forwardRef(() => TransactionModule),
     ],
     providers: [WalletService, WalletResolver],
+    exports: [WalletService],
 })
 export class WalletsModule {}

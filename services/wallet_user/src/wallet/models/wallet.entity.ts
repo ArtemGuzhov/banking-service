@@ -1,4 +1,3 @@
-// import { TransactionEntity } from 'src/transaction/models/transaction.entity'
 import { UserEntity } from 'src/user/models/user.entity'
 import {
     CreateDateColumn,
@@ -6,7 +5,6 @@ import {
     UpdateDateColumn,
     Column,
     Entity,
-    // OneToMany,
     ManyToOne,
     JoinColumn,
     AfterLoad,
@@ -39,10 +37,6 @@ export class WalletEntity {
     @JoinColumn({ name: 'user_id' })
     user: UserEntity
 
-    // @OneToMany(() => TransactionEntity, (transaction) => transaction.wallet, {
-    //     cascade: true,
-    // })
-    // transactions: TransactionEntity[]
 
     balance: number
 

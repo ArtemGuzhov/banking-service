@@ -20,6 +20,5 @@ export class Transaction {
     @Field()
     created_at: Date
 
-    @Field()
     wallet_id: number
 }

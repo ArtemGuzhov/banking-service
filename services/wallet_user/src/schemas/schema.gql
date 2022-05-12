@@ -103,7 +103,9 @@ type Transaction {
   operation: String!
   sum: Float!
   to: Float
-  wallet_id: Float!
+
+  """Allows you to get wallet information"""
+  wallet: Wallet!
 }
 
 input TransferWalletInput {

@@ -168,22 +168,24 @@ export class WalletService {
                     )
                 }
 
-                const transaction = await this.transactionService.create({
-                    operation: 'deposit',
-                    sum,
-                    wallet_id: walletId,
-                })
-
                 const incoming = wallet.incoming + Number(sum)
 
                 await queryRunner.manager.update(WalletEntity, walletId, {
                     incoming,
                 })
 
+                const transaction = await this.transactionService.create({
+                    operation: 'deposit',
+                    sum,
+                    wallet_id: walletId,
+                })
+
                 await queryRunner.commitTransaction()
 
                 return transaction.id
             } catch (error) {
+                this._logger.debug('ROLLBACK')
+
                 await queryRunner.rollbackTransaction()
 
                 throw new HttpException(error, HttpStatus.CONFLICT)
@@ -249,7 +251,7 @@ export class WalletService {
                 })
 
                 const transaction = await this.transactionService.create({
-                    operation: 'deposit',
+                    operation: 'withdraw',
                     sum,
                     wallet_id: walletId,
                 })
@@ -393,7 +395,7 @@ export class WalletService {
                     { incoming: moneyTransfer.incoming },
                 )
 
-                const senderResult = await this.transactionService.create({
+                const senderTransaction = await this.transactionService.create({
                     operation: 'transfer',
                     sum,
                     wallet_id: senderWallet.id,
@@ -411,7 +413,7 @@ export class WalletService {
 
                 await queryRunner.commitTransaction()
 
-                return senderResult.id
+                return senderTransaction.id
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 

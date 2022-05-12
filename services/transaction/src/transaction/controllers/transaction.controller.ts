@@ -16,6 +16,7 @@ export class TransactionController {
     ) {
         const channel = context.getChannelRef()
         const orginalMessage = context.getMessage()
+
         channel.ack(orginalMessage)
 
         return await this.transactionService.create(data)

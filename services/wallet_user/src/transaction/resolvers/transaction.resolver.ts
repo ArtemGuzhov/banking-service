@@ -1,10 +1,15 @@
-import { Args, Resolver, Query } from '@nestjs/graphql'
+import { Args, Resolver, Query, ResolveField, Parent } from '@nestjs/graphql'
 import { TransactionService } from 'src/transaction/services/transaction.service'
+import { Wallet } from 'src/wallet/models/wallet.interface'
+import { WalletService } from 'src/wallet/services/wallet.service'
 import { Transaction } from '../models/transaction.interface'
 
 @Resolver(() => Transaction)
 export class TransactionResolver {
-    constructor(private readonly transactionService: TransactionService) {}
+    constructor(
+        private readonly transactionService: TransactionService,
+        private readonly walletService: WalletService,
+    ) {}
 
     // QUERY
 
@@ -24,5 +29,15 @@ export class TransactionResolver {
         @Args('id', { description: 'transaction id' }) id: number,
     ): Promise<Transaction> {
         return await this.transactionService.findOne(id)
+    }
+
+    @ResolveField(() => Wallet, {
+        name: 'wallet',
+        description: 'Allows you to get wallet information',
+    })
+    async wallet(@Parent() transaction: Transaction) {
+        const { wallet_id } = transaction
+
+        return this.walletService.findOne(wallet_id)
     }
 }

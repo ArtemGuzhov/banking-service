@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { ClientsModule, Transport } from '@nestjs/microservices'
+import { WalletsModule } from 'src/wallet/wallet.module'
 import { TransactionResolver } from './resolvers/transaction.resolver'
 import { TransactionService } from './services/transaction.service'
 
@@ -15,6 +16,7 @@ import { TransactionService } from './services/transaction.service'
                 },
             },
         ]),
+        forwardRef(() => WalletsModule),
     ],
     providers: [TransactionService, TransactionResolver],
     exports: [TransactionService],
