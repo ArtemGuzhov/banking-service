@@ -11,15 +11,15 @@ export class UserService {
 
     constructor(
         @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>,
-        private connection: Connection,
+        private readonly _userRepository: Repository<UserEntity>,
+        private readonly _connection: Connection,
     ) {}
 
     // QUERY
 
     async findAll(): Promise<UserEntity[]> {
         try {
-            return await this.userRepository.find({
+            return await this._userRepository.find({
                 relations: ['wallets'],
                 order: {
                     id: 'ASC',
@@ -34,7 +34,7 @@ export class UserService {
 
     async findOne(id: number): Promise<UserEntity> {
         try {
-            const user = await this.userRepository.findOne({
+            const user = await this._userRepository.findOne({
                 where: { id },
                 relations: ['wallets'],
             })
@@ -61,7 +61,7 @@ export class UserService {
 
             const lowerCaseEmail = email.toLowerCase()
 
-            const userExist = await this.userRepository.findOne({
+            const userExist = await this._userRepository.findOne({
                 email: lowerCaseEmail,
             })
 
@@ -72,7 +72,7 @@ export class UserService {
                 )
             }
 
-            return await this.userRepository.save({
+            return await this._userRepository.save({
                 name: lowerCaseName,
                 email: lowerCaseEmail,
             })
@@ -85,7 +85,7 @@ export class UserService {
 
     async delete(id: number): Promise<String> {
         try {
-            const queryRunner = this.connection.createQueryRunner()
+            const queryRunner = this._connection.createQueryRunner()
 
             await queryRunner.connect()
 

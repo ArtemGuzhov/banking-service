@@ -6,20 +6,20 @@ import {
     ResolveField,
     Parent,
 } from '@nestjs/graphql'
-import { Transaction } from 'src/transaction/models/transaction.interface'
+import { Transaction } from 'src/transaction/graphql/type/transaction.type'
 import { TransactionService } from 'src/transaction/services/transaction.service'
 import { WalletService } from 'src/wallet/services/wallet.service'
 import { CloseWalletInput } from '../graphql/inputs/close-wallet.input'
 import { DepositWalletInput } from '../graphql/inputs/deposit-wallet.input'
 import { TransferWalletInput } from '../graphql/inputs/transfer-wallet.input'
 import { WithdrawWalletInput } from '../graphql/inputs/withdraw-wallet.input'
-import { Wallet } from '../models/wallet.interface'
+import { Wallet } from '../graphql/type/wallet.type'
 
 @Resolver(() => Wallet)
 export class WalletResolver {
     constructor(
-        private readonly walletService: WalletService,
-        private readonly transactionService: TransactionService,
+        private readonly _walletService: WalletService,
+        private readonly _transactionService: TransactionService,
     ) {}
 
     // QUERY
@@ -31,7 +31,7 @@ export class WalletResolver {
     async wallet(
         @Args('id', { description: 'wallet id' }) id: number,
     ): Promise<Wallet> {
-        return await this.walletService.findOne(id)
+        return await this._walletService.findOne(id)
     }
 
     @Query(() => [Wallet], {
@@ -39,7 +39,7 @@ export class WalletResolver {
         description: 'Getting all wallets.',
     })
     async wallets(): Promise<Wallet[]> {
-        return await this.walletService.findAll()
+        return await this._walletService.findAll()
     }
 
     @ResolveField(() => [Transaction], {
@@ -49,7 +49,7 @@ export class WalletResolver {
     async transactions(@Parent() wallet: Wallet) {
         const { id } = wallet
 
-        return this.transactionService.findAll(id)
+        return this._transactionService.findAll(id)
     }
 
     // MUTATION
@@ -62,7 +62,7 @@ export class WalletResolver {
     async createWallet(
         @Args('id', { description: 'user id' }) id: number,
     ): Promise<Wallet> {
-        return await this.walletService.create(id)
+        return await this._walletService.create(id)
     }
 
     @Mutation(() => String, {
@@ -74,7 +74,7 @@ export class WalletResolver {
     async close(
         @Args('closeWalletInput') closeWalletInput: CloseWalletInput,
     ): Promise<String> {
-        return await this.walletService.close(closeWalletInput)
+        return await this._walletService.close(closeWalletInput)
     }
 
     @Mutation(() => Number, {
@@ -84,7 +84,7 @@ export class WalletResolver {
     async deposit(
         @Args('depositWalletInput') depositWalletInput: DepositWalletInput,
     ): Promise<Number> {
-        return await this.walletService.deposit(depositWalletInput)
+        return await this._walletService.deposit(depositWalletInput)
     }
 
     @Mutation(() => Number, {
@@ -94,7 +94,7 @@ export class WalletResolver {
     async withdraw(
         @Args('withdrawWalletInput') withdrawWalletInput: WithdrawWalletInput,
     ): Promise<Number> {
-        return await this.walletService.withdraw(withdrawWalletInput)
+        return await this._walletService.withdraw(withdrawWalletInput)
     }
 
     @Mutation(() => Number, {
@@ -104,6 +104,6 @@ export class WalletResolver {
     async transfer(
         @Args('transferWalletInput') transferWalletInput: TransferWalletInput,
     ): Promise<Number> {
-        return await this.walletService.transfer(transferWalletInput)
+        return await this._walletService.transfer(transferWalletInput)
     }
 }

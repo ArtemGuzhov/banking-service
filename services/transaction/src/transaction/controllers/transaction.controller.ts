@@ -7,7 +7,7 @@ import { TransactionService } from '../services/transaction.service'
 
 @Controller('transaction')
 export class TransactionController {
-    constructor(private readonly transactionService: TransactionService) {}
+    constructor(private readonly _transactionService: TransactionService) {}
 
     @MessagePattern('producer-create')
     async create(
@@ -19,7 +19,7 @@ export class TransactionController {
 
         channel.ack(orginalMessage)
 
-        return await this.transactionService.create(data)
+        return await this._transactionService.create(data)
     }
 
     @MessagePattern('producer-find-all')
@@ -31,7 +31,7 @@ export class TransactionController {
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
 
-        return await this.transactionService.findAll(data)
+        return await this._transactionService.findAll(data)
     }
 
     @MessagePattern('producer-find-one')
@@ -43,6 +43,6 @@ export class TransactionController {
         const orginalMessage = context.getMessage()
         channel.ack(orginalMessage)
 
-        return await this.transactionService.findOne(data.id)
+        return await this._transactionService.findOne(data.id)
     }
 }

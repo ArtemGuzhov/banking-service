@@ -16,17 +16,17 @@ export class WalletService {
 
     constructor(
         @InjectRepository(WalletEntity)
-        private readonly walletRepository: Repository<WalletEntity>,
-        private readonly userService: UserService,
-        private connection: Connection,
-        private readonly transactionService: TransactionService,
+        private readonly _walletRepository: Repository<WalletEntity>,
+        private readonly _userService: UserService,
+        private readonly _connection: Connection,
+        private readonly _transactionService: TransactionService,
     ) {}
 
     // QUERY
 
     async findOne(id: number, userId?: number): Promise<WalletEntity> {
         try {
-            const wallet = await this.walletRepository.findOne(
+            const wallet = await this._walletRepository.findOne(
                 userId
                     ? {
                           where: {
@@ -63,7 +63,7 @@ export class WalletService {
 
     async findAll(): Promise<WalletEntity[]> {
         try {
-            return await this.walletRepository.find({
+            return await this._walletRepository.find({
                 relations: ['user'],
                 order: {
                     id: 'ASC',
@@ -80,9 +80,9 @@ export class WalletService {
 
     async create(id: number): Promise<WalletEntity> {
         try {
-            const user = await this.userService.findOne(id)
+            const user = await this._userService.findOne(id)
 
-            return this.walletRepository.save({ user })
+            return this._walletRepository.save({ user })
         } catch (error) {
             this._logger.error(error, error.stack)
 
@@ -94,7 +94,7 @@ export class WalletService {
         try {
             const { userId, walletId } = closeDto
 
-            const user = await this.userService.findOne(userId)
+            const user = await this._userService.findOne(userId)
 
             const wallet = await this.findOne(walletId, userId)
 
@@ -119,7 +119,7 @@ export class WalletService {
                 })
             }
 
-            await this.walletRepository.update(walletId, {
+            await this._walletRepository.update(walletId, {
                 status: false,
                 closed_at: new Date(),
             })
@@ -136,9 +136,9 @@ export class WalletService {
         try {
             const { walletId, userId, sum } = depositDto
 
-            await this.userService.findOne(userId)
+            await this._userService.findOne(userId)
 
-            const queryRunner = this.connection.createQueryRunner()
+            const queryRunner = this._connection.createQueryRunner()
 
             await queryRunner.connect()
 
@@ -174,7 +174,7 @@ export class WalletService {
                     incoming,
                 })
 
-                const transaction = await this.transactionService.create({
+                const transaction = await this._transactionService.create({
                     operation: 'deposit',
                     sum,
                     wallet_id: walletId,
@@ -203,9 +203,9 @@ export class WalletService {
         try {
             const { userId, walletId, sum } = withdrawDto
 
-            await this.userService.findOne(userId)
+            await this._userService.findOne(userId)
 
-            const queryRunner = this.connection.createQueryRunner()
+            const queryRunner = this._connection.createQueryRunner()
 
             await queryRunner.connect()
 
@@ -250,7 +250,7 @@ export class WalletService {
                     outgoing,
                 })
 
-                const transaction = await this.transactionService.create({
+                const transaction = await this._transactionService.create({
                     operation: 'withdraw',
                     sum,
                     wallet_id: walletId,
@@ -284,7 +284,7 @@ export class WalletService {
                 )
             }
 
-            const queryRunner = this.connection.createQueryRunner()
+            const queryRunner = this._connection.createQueryRunner()
 
             await queryRunner.connect()
 
@@ -395,15 +395,17 @@ export class WalletService {
                     { incoming: moneyTransfer.incoming },
                 )
 
-                const senderTransaction = await this.transactionService.create({
-                    operation: 'transfer',
-                    sum,
-                    wallet_id: senderWallet.id,
-                    from,
-                    to,
-                })
+                const senderTransaction = await this._transactionService.create(
+                    {
+                        operation: 'transfer',
+                        sum,
+                        wallet_id: senderWallet.id,
+                        from,
+                        to,
+                    },
+                )
 
-                await this.transactionService.create({
+                await this._transactionService.create({
                     operation: 'transfer',
                     sum,
                     wallet_id: recipientWallet.id,

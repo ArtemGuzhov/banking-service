@@ -14,7 +14,7 @@ export class TransactionService {
     private readonly _logger = new Logger(TransactionService.name)
 
     constructor(
-        @Inject('rabbit-mq-module') private readonly client: ClientProxy,
+        @Inject('rabbit-mq-module') private readonly _client: ClientProxy,
     ) {}
 
     // QUERY
@@ -27,7 +27,7 @@ export class TransactionService {
                 data['id'] = id
             }
 
-            const source$ = this.client
+            const source$ = this._client
                 .send<TransactionDto[], any>('producer-find-all', data)
                 .pipe(timeout(5000))
 
@@ -43,7 +43,7 @@ export class TransactionService {
 
     async findOne(id: number): Promise<TransactionDto> {
         try {
-            const sourse$ = this.client
+            const sourse$ = this._client
                 .send<TransactionDto, FindTransactionDto>('producer-find-one', {
                     id,
                 })
@@ -61,41 +61,15 @@ export class TransactionService {
 
     async create(createDto: CreateTransactionDto): Promise<TransactionDto> {
         try {
-            const { from, to, sum, operation, wallet_id } = createDto
+            const sourse$ = this._client
+                .send<TransactionDto, CreateTransactionDto>('producer-create', {
+                    ...createDto,
+                })
+                .pipe(timeout(5000))
 
-            if (from && to) {
-                const sourse$ = this.client
-                    .send<TransactionDto, CreateTransactionDto>(
-                        'producer-create',
-                        {
-                            operation,
-                            sum,
-                            wallet_id,
-                            from,
-                            to,
-                        },
-                    )
-                    .pipe(timeout(5000))
+            const transaction = await lastValueFrom(sourse$)
 
-                const transaction = await lastValueFrom(sourse$)
-
-                return transaction
-            } else {
-                const sourse$ = this.client
-                    .send<TransactionDto, CreateTransactionDto>(
-                        'producer-create',
-                        {
-                            operation,
-                            sum,
-                            wallet_id,
-                        },
-                    )
-                    .pipe(timeout(5000))
-
-                const transaction = await lastValueFrom(sourse$)
-
-                return transaction
-            }
+            return transaction
         } catch (error) {
             this._logger.error(error, error.stack)
 

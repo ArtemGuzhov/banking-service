@@ -12,7 +12,7 @@ export class TransactionService {
 
     constructor(
         @InjectRepository(TransactionEntity)
-        private readonly transactionRepository: Repository<TransactionEntity>,
+        private readonly _transactionRepository: Repository<TransactionEntity>,
     ) {}
 
     // QUERY
@@ -24,7 +24,7 @@ export class TransactionService {
             const { id } = findAllDto
 
             const transactions = id
-                ? await this.transactionRepository.find({
+                ? await this._transactionRepository.find({
                       where: {
                           wallet_id: id,
                       },
@@ -32,7 +32,7 @@ export class TransactionService {
                           id: 'ASC',
                       },
                   })
-                : await this.transactionRepository.find({
+                : await this._transactionRepository.find({
                       order: {
                           id: 'ASC',
                       },
@@ -48,7 +48,7 @@ export class TransactionService {
 
     async findOne(id: number): Promise<TransactionEntity> {
         try {
-            const transaction = await this.transactionRepository.findOne({
+            const transaction = await this._transactionRepository.findOne({
                 where: {
                     id,
                 },
@@ -70,23 +70,9 @@ export class TransactionService {
 
     async create(createDto: CreateTransactionDto): Promise<TransactionEntity> {
         try {
-            const { from, to, sum, operation, wallet_id } = createDto
-
-            if (from && to) {
-                return await this.transactionRepository.save({
-                    operation,
-                    sum,
-                    wallet_id,
-                    from,
-                    to,
-                })
-            } else {
-                return await this.transactionRepository.save({
-                    operation,
-                    sum,
-                    wallet_id,
-                })
-            }
+            return await this._transactionRepository.save({
+                ...createDto,
+            })
         } catch (error) {
             this._logger.error(error, error.stack)
 
