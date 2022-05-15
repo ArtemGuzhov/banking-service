@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { RpcException } from '@nestjs/microservices'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { ClientProxy, RpcException } from '@nestjs/microservices'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
@@ -13,7 +13,12 @@ export class TransactionService {
     constructor(
         @InjectRepository(TransactionEntity)
         private readonly _transactionRepository: Repository<TransactionEntity>,
+        @Inject('rabbit-mq-module') private readonly _client: ClientProxy,
     ) {}
+
+    async checoutResult() {
+        this._client.emit('checkout-result', {})
+    }
 
     // QUERY
 
@@ -68,10 +73,22 @@ export class TransactionService {
 
     // MUTATION
 
-    async create(createDto: CreateTransactionDto): Promise<TransactionEntity> {
+    async create(createDto: CreateTransactionDto) {
         try {
-            return await this._transactionRepository.save({
+            this._logger.debug('Create Transaction')
+            this._logger.debug({ ...createDto })
+
+            await this._transactionRepository.save({
                 ...createDto,
+            })
+
+            this._client.emit('producer-balance', {
+                wallet_id: createDto.wallet_id,
+                sum: createDto.sum,
+                operation:
+                    createDto.operation === 'transfer'
+                        ? createDto.operation_for_update
+                        : createDto.operation,
             })
         } catch (error) {
             this._logger.error(error, error.stack)

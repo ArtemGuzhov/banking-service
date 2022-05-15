@@ -1,5 +1,11 @@
 import { Controller } from '@nestjs/common'
-import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
+import {
+    Ctx,
+    EventPattern,
+    MessagePattern,
+    Payload,
+    RmqContext,
+} from '@nestjs/microservices'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
 import { FindAllTransactionsDto } from '../dtos/find-all-transactions'
 import { FindTransactionDto } from '../dtos/find-transaction.dto'
@@ -9,7 +15,7 @@ import { TransactionService } from '../services/transaction.service'
 export class TransactionController {
     constructor(private readonly _transactionService: TransactionService) {}
 
-    @MessagePattern('producer-create')
+    @EventPattern('producer-create')
     async create(
         @Payload() data: CreateTransactionDto,
         @Ctx() context: RmqContext,

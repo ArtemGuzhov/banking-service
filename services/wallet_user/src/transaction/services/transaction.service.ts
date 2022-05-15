@@ -17,6 +17,10 @@ export class TransactionService {
         @Inject('rabbit-mq-module') private readonly _client: ClientProxy,
     ) {}
 
+    checout() {
+        return this._client.emit('checout', {})
+    }
+
     // QUERY
 
     async findAll(id?: number): Promise<TransactionDto[]> {
@@ -59,17 +63,11 @@ export class TransactionService {
         }
     }
 
-    async create(createDto: CreateTransactionDto): Promise<TransactionDto> {
+    async create(createDto: CreateTransactionDto) {
         try {
-            const sourse$ = this._client
-                .send<TransactionDto, CreateTransactionDto>('producer-create', {
-                    ...createDto,
-                })
-                .pipe(timeout(5000))
+            this._logger.debug('Send data in rabbitmq')
 
-            const transaction = await lastValueFrom(sourse$)
-
-            return transaction
+            return this._client.emit('producer-create', { ...createDto })
         } catch (error) {
             this._logger.error(error, error.stack)
 

@@ -19,4 +19,7 @@ export class CreateTransactionDto {
 
     @Type(() => Number)
     to?: number
+
+    @Type(() => String)
+    operation_for_update?: string
 }

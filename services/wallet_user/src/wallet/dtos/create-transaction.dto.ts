@@ -4,4 +4,5 @@ export class CreateTransactionDto {
     from?: number
     to?: number
     operation: string
+    operation_for_update?: string
 }

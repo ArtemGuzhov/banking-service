@@ -6,6 +6,7 @@ import { UserService } from 'src/user/services/user.service'
 import { Connection, Repository } from 'typeorm'
 import { CloseWalletDto } from '../dtos/close-wallet.dto'
 import { DepositWalletDto } from '../dtos/deposit-wallet.dto'
+import { UpdateBalanceDto } from '../dtos/update-balance.dto'
 import { TransferWalletDto } from '../dtos/transfer-wallet.dto'
 import { WithdrawWalletDto } from '../dtos/withdraw-wallet.dto'
 import { WalletEntity } from '../models/wallet.entity'
@@ -111,7 +112,6 @@ export class WalletService {
                 const depositedWalletId = wallets.filter(
                     (wallet) => wallet.id !== Number(walletId),
                 )[0]!['id']
-
                 await this.transfer({
                     from: walletId,
                     to: depositedWalletId,
@@ -132,7 +132,69 @@ export class WalletService {
         }
     }
 
-    async deposit(depositDto: DepositWalletDto): Promise<Number> {
+    async updateBalance(updateBalanceDto: UpdateBalanceDto) {
+        try {
+            const { wallet_id, operation, sum } = updateBalanceDto
+
+            this._logger.debug(`Update balance. Operation: ${operation}`)
+            this._logger.debug({ ...updateBalanceDto })
+
+            const queryRunner = this._connection.createQueryRunner()
+
+            await queryRunner.connect()
+
+            await queryRunner.startTransaction('SERIALIZABLE')
+
+            try {
+                const wallet = await queryRunner.manager.findOne(
+                    WalletEntity,
+                    wallet_id,
+                )
+
+                if (!wallet) {
+                    throw new HttpException(
+                        'Wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
+                }
+
+                switch (operation) {
+                    case 'deposit':
+                        await queryRunner.manager.update(
+                            WalletEntity,
+                            wallet_id,
+                            { incoming: wallet.incoming + sum },
+                        )
+
+                        break
+                    case 'withdraw':
+                        await queryRunner.manager.update(
+                            WalletEntity,
+                            wallet_id,
+                            { outgoing: wallet.outgoing + sum },
+                        )
+
+                        break
+                    default:
+                        break
+                }
+
+                await queryRunner.commitTransaction()
+            } catch (error) {
+                await queryRunner.rollbackTransaction()
+
+                throw new HttpException(error, HttpStatus.CONFLICT)
+            } finally {
+                await queryRunner.release()
+            }
+        } catch (error) {
+            this._logger.error(error, error.stack)
+
+            throw error
+        }
+    }
+
+    async deposit(depositDto: DepositWalletDto): Promise<String> {
         try {
             const { walletId, userId, sum } = depositDto
 
@@ -168,13 +230,7 @@ export class WalletService {
                     )
                 }
 
-                const incoming = wallet.incoming + Number(sum)
-
-                await queryRunner.manager.update(WalletEntity, walletId, {
-                    incoming,
-                })
-
-                const transaction = await this._transactionService.create({
+                await this._transactionService.create({
                     operation: 'deposit',
                     sum,
                     wallet_id: walletId,
@@ -182,7 +238,7 @@ export class WalletService {
 
                 await queryRunner.commitTransaction()
 
-                return transaction.id
+                return 'Expect'
             } catch (error) {
                 this._logger.debug('ROLLBACK')
 
@@ -199,7 +255,7 @@ export class WalletService {
         }
     }
 
-    async withdraw(withdrawDto: WithdrawWalletDto): Promise<Number> {
+    async withdraw(withdrawDto: WithdrawWalletDto): Promise<String> {
         try {
             const { userId, walletId, sum } = withdrawDto
 
@@ -244,13 +300,7 @@ export class WalletService {
                     )
                 }
 
-                const outgoing = wallet.outgoing + Number(sum)
-
-                await queryRunner.manager.update(WalletEntity, walletId, {
-                    outgoing,
-                })
-
-                const transaction = await this._transactionService.create({
+                await this._transactionService.create({
                     operation: 'withdraw',
                     sum,
                     wallet_id: walletId,
@@ -258,7 +308,7 @@ export class WalletService {
 
                 await queryRunner.commitTransaction()
 
-                return transaction.id
+                return 'Expect'
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 
@@ -273,7 +323,7 @@ export class WalletService {
         }
     }
 
-    async transfer(transferDto: TransferWalletDto): Promise<Number> {
+    async transfer(transferDto: TransferWalletDto): Promise<String> {
         try {
             const { from, to, sum } = transferDto
 
@@ -378,32 +428,14 @@ export class WalletService {
                     )
                 }
 
-                const moneyTransfer = {
-                    outgoing: senderWallet.outgoing + sum,
-                    incoming: recipientWallet.incoming + sum,
-                }
-
-                await queryRunner.manager.update(
-                    WalletEntity,
-                    senderWallet.id,
-                    { outgoing: moneyTransfer.outgoing },
-                )
-
-                await queryRunner.manager.update(
-                    WalletEntity,
-                    recipientWallet.id,
-                    { incoming: moneyTransfer.incoming },
-                )
-
-                const senderTransaction = await this._transactionService.create(
-                    {
-                        operation: 'transfer',
-                        sum,
-                        wallet_id: senderWallet.id,
-                        from,
-                        to,
-                    },
-                )
+                await this._transactionService.create({
+                    operation: 'transfer',
+                    sum,
+                    wallet_id: senderWallet.id,
+                    from,
+                    to,
+                    operation_for_update: 'withdraw',
+                })
 
                 await this._transactionService.create({
                     operation: 'transfer',
@@ -411,11 +443,12 @@ export class WalletService {
                     wallet_id: recipientWallet.id,
                     from,
                     to,
+                    operation_for_update: 'deposit',
                 })
 
                 await queryRunner.commitTransaction()
 
-                return senderTransaction.id
+                return 'Expect'
             } catch (error) {
                 await queryRunner.rollbackTransaction()
 

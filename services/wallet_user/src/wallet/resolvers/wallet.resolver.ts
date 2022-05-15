@@ -77,33 +77,33 @@ export class WalletResolver {
         return await this._walletService.close(closeWalletInput)
     }
 
-    @Mutation(() => Number, {
+    @Mutation(() => String, {
         name: 'deposit',
         description: `Replenishes the user's wallet for a certain amount. The input accepts the amount, user ID and wallet.`,
     })
     async deposit(
         @Args('depositWalletInput') depositWalletInput: DepositWalletInput,
-    ): Promise<Number> {
+    ): Promise<String> {
         return await this._walletService.deposit(depositWalletInput)
     }
 
-    @Mutation(() => Number, {
+    @Mutation(() => String, {
         name: 'withdraw',
         description: `Withdraws a certain amount from the user's wallet. The input accepts the amount, user ID and wallet.`,
     })
     async withdraw(
         @Args('withdrawWalletInput') withdrawWalletInput: WithdrawWalletInput,
-    ): Promise<Number> {
+    ): Promise<String> {
         return await this._walletService.withdraw(withdrawWalletInput)
     }
 
-    @Mutation(() => Number, {
+    @Mutation(() => String, {
         name: 'transfer',
         description: `Transferring money from one wallet to another. The input accepts the id of the wallet from which the transfer is to be made and the id of the wallet to which funds and the amount to be transferred should be received.`,
     })
     async transfer(
         @Args('transferWalletInput') transferWalletInput: TransferWalletInput,
-    ): Promise<Number> {
+    ): Promise<String> {
         return await this._walletService.transfer(transferWalletInput)
     }
 }

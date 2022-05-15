@@ -4,6 +4,7 @@ import { WalletsModule } from 'src/wallet/wallet.module'
 import { TransactionResolver } from './resolvers/transaction.resolver'
 import { TransactionService } from './services/transaction.service'
 
+// rabbitmq
 @Module({
     imports: [
         ClientsModule.register([
@@ -12,7 +13,7 @@ import { TransactionService } from './services/transaction.service'
                 transport: Transport.RMQ,
                 options: {
                     urls: ['amqp://user:user@rabbitmq:5672'],
-                    queue: 'rabbit-mq-nest-js',
+                    queue: 'transaction',
                 },
             },
         ]),
