@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { TransactionController } from './controllers/transaction.controller'
 import { TransactionEntity } from './models/transaction.entity'
 import { TransactionService } from './services/transaction.service'
+import { TransactionResolver } from './resolvers/transaction.resolver'
 
 @Module({
     imports: [
@@ -13,13 +14,13 @@ import { TransactionService } from './services/transaction.service'
                 name: 'rabbit-mq-module',
                 transport: Transport.RMQ,
                 options: {
-                    urls: ['amqp://user:user@rabbitmq:5672'],
+                    urls: ['amqp://user:user@localhost:5672'],
                     queue: 'wallet-user',
                 },
             },
         ]),
     ],
     controllers: [TransactionController],
-    providers: [TransactionService],
+    providers: [TransactionService, TransactionResolver],
 })
 export class TransactionModule {}

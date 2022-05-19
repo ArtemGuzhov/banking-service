@@ -3,7 +3,7 @@ import { Transport } from '@nestjs/microservices'
 export const rabbitMqConfig = {
     transport: Transport.RMQ,
     options: {
-        urls: ['amqp://user:user@rabbitmq:5672'],
+        urls: ['amqp://user:user@localhost:5672'],
         queue: 'wallet-user',
         noAck: false,
         prefetchCount: 1,

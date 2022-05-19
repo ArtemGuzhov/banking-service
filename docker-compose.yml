@@ -34,25 +34,24 @@ services:
       - 15672:15672
       - 5672:5672
 
-  nestjs_transaction:
-    restart: always
-    build:
-      context: ./services/transaction
-      dockerfile: Dockerfile
-    ports:
-      - 5000:5000
-    depends_on:
-      - db
-      - rabbitmq  
+  # nestjs_transaction:
+  #   restart: always
+  #   build:
+  #     context: ./services/transaction
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 5000:5000
+  #   depends_on:
+  #     - db
+  #     - rabbitmq  
 
-  nestjs_wallet_user:
-    restart: always
-    build:
-      context: ./services/wallet_user
-      dockerfile: Dockerfile
-    ports:
-      - 7000:7000
-    depends_on:
-      - db
-      - rabbitmq
-
+  # nestjs_wallet_user:
+  #   restart: always
+  #   build:
+  #     context: ./services/wallet_user
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - 7000:7000
+  #   depends_on:
+  #     - db
+  #     - rabbitmq

@@ -18,7 +18,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices'
                 name: 'rabbit-mq-module',
                 transport: Transport.RMQ,
                 options: {
-                    urls: ['amqp://user:user@rabbitmq:5672'],
+                    urls: ['amqp://user:user@localhost:5672'],
                     queue: 'transaction',
                 },
             },
