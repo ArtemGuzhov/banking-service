@@ -1,13 +1,15 @@
+import { HttpService } from '@nestjs/axios'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ClientProxy } from '@nestjs/microservices'
-import { lastValueFrom, timeout } from 'rxjs'
+import { catchError, lastValueFrom, map } from 'rxjs'
 import { CreateTransactionDto } from 'src/wallet/dtos/create-transaction.dto'
-import { FindTransactionDto } from '../dtos/inputs/find-transaction.dto'
 import { TransactionDto } from '../dtos/outputs/transaction.dto'
 
 interface FindData {
     [key: string]: number
 }
+
+const API_TRANSACTION_SERVICE = 'http://localhost:5000/graphql'
 
 @Injectable()
 export class TransactionService {
@@ -15,8 +17,15 @@ export class TransactionService {
 
     constructor(
         @Inject('rabbit-mq-module') private readonly _client: ClientProxy,
+        private readonly _httpService: HttpService,
     ) {}
 
+<<<<<<< Updated upstream
+=======
+    sendActionCommit(status: number) {
+        this._client.emit('producer-update-status-transaction', status)
+    }
+>>>>>>> Stashed changes
     // QUERY
 
     async findAll(id?: number): Promise<TransactionDto[]> {
@@ -27,11 +36,29 @@ export class TransactionService {
                 data['id'] = id
             }
 
-            const source$ = this._client
-                .send<TransactionDto[], any>('producer-find-all', data)
-                .pipe(timeout(5000))
+            const response = this._httpService
+                .get(
+                    `${API_TRANSACTION_SERVICE}?query={transactions${
+                        data.id ? `(id: ${data.id})` : ''
+                    }{
+                        id
+                        operation
+                        sum
+                        from
+                        to
+                        created_at
+                        wallet_id
+                        
+                    }}`,
+                )
+                .pipe(
+                    map((res) => res.data.data.transactions),
+                    catchError((e) => {
+                        throw e.response.data
+                    }),
+                )
 
-            const transactions = await lastValueFrom(source$)
+            const transactions = await lastValueFrom(response)
 
             return transactions
         } catch (error) {
@@ -43,13 +70,27 @@ export class TransactionService {
 
     async findOne(id: number): Promise<TransactionDto> {
         try {
-            const sourse$ = this._client
-                .send<TransactionDto, FindTransactionDto>('producer-find-one', {
-                    id,
-                })
-                .pipe(timeout(5000))
+            const response = this._httpService
+                .get(
+                    `${API_TRANSACTION_SERVICE}?query={transaction(id: ${id}){
+                    id
+                    operation
+                    sum
+                    from
+                    to
+                    created_at
+                    wallet_id
+                   
+                }}`,
+                )
+                .pipe(
+                    map((res) => res.data.data.transaction),
+                    catchError((e) => {
+                        throw e.response.data
+                    }),
+                )
 
-            const transaction = await lastValueFrom(sourse$)
+            const transaction = await lastValueFrom(response)
 
             return transaction
         } catch (error) {
@@ -70,6 +111,20 @@ export class TransactionService {
             const transaction = await lastValueFrom(sourse$)
 
             return transaction
+        } catch (error) {
+            this._logger.error(error, error.stack)
+
+            throw error
+        }
+    }
+
+    async createTwoTransaction(createDto: CreateTransactionDto[]) {
+        try {
+            this._logger.debug('Send data in rabbitmq')
+
+            return this._client.emit('producer-create-two-transaction', {
+                transactionData: [...createDto],
+            })
         } catch (error) {
             this._logger.error(error, error.stack)
 

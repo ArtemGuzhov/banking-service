@@ -1,6 +1,7 @@
 import { Controller } from '@nestjs/common'
 import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
 import { CreateTransactionDto } from '../dtos/create-transaction.dto'
+import { CreateTwoTransactionDto } from '../dtos/create-two-transaction.dto'
 import { FindAllTransactionsDto } from '../dtos/find-all-transactions'
 import { FindTransactionDto } from '../dtos/find-transaction.dto'
 import { TransactionService } from '../services/transaction.service'
@@ -20,6 +21,29 @@ export class TransactionController {
         channel.ack(orginalMessage)
 
         return await this._transactionService.create(data)
+    }
+
+    @EventPattern('producer-update-status-transaction')
+    async updateStatus(@Payload() data: number, @Ctx() context: RmqContext) {
+        const channel = context.getChannelRef()
+        const orginalMessage = context.getMessage()
+
+        channel.ack(orginalMessage)
+
+        this._transactionService.updateStatus(data)
+    }
+
+    @EventPattern('producer-create-two-transaction')
+    async createTwoTransaction(
+        @Payload() data: CreateTwoTransactionDto,
+        @Ctx() context: RmqContext,
+    ) {
+        const channel = context.getChannelRef()
+        const orginalMessage = context.getMessage()
+
+        channel.ack(orginalMessage)
+
+        this._transactionService.createTwoTransactin(data)
     }
 
     @MessagePattern('producer-find-all')

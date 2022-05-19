@@ -26,7 +26,8 @@ export class TransactionResolver {
         description: 'Receiving a transaction by id.',
     })
     async transaction(
-        @Args('id', { description: 'transaction id' }) id: number,
+        @Args('id', { description: 'transaction id', nullable: true })
+        id: number,
     ): Promise<Transaction> {
         return await this._transactionService.findOne(id)
     }

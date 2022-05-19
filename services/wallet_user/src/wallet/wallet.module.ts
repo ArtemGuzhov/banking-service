@@ -11,6 +11,19 @@ import { TransactionModule } from 'src/transaction/transaction.module'
         TypeOrmModule.forFeature([WalletEntity]),
         forwardRef(() => UserModule),
         forwardRef(() => TransactionModule),
+<<<<<<< Updated upstream
+=======
+        ClientsModule.register([
+            {
+                name: 'rabbit-mq-module',
+                transport: Transport.RMQ,
+                options: {
+                    urls: ['amqp://user:user@localhost:5672'],
+                    queue: 'transaction',
+                },
+            },
+        ]),
+>>>>>>> Stashed changes
     ],
     providers: [WalletService, WalletResolver],
     exports: [WalletService],

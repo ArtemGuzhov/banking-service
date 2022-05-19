@@ -9,10 +9,22 @@ import { DepositWalletDto } from '../dtos/deposit-wallet.dto'
 import { TransferWalletDto } from '../dtos/transfer-wallet.dto'
 import { WithdrawWalletDto } from '../dtos/withdraw-wallet.dto'
 import { WalletEntity } from '../models/wallet.entity'
+import { UpdateStatusDto } from '../dtos/update-status.dto'
+import { UpdateTwoBalanceDto } from '../dtos/update-two-balance.dto'
+
+const TRANSACTION = 'TRANSACTION'
+const WALLET_USER = 'WALLET_USER'
+
+const OPERATIONS = { DEPOSIT: 'deposit', WITHDRAW: 'withdraw' }
+const STATUSES = { DEFAULT: 0, SUCCESS: 1, ERROR: 2 }
 
 @Injectable()
 export class WalletService {
     private readonly _logger = new Logger(WalletService.name)
+    private _statusMsTransaction: number = STATUSES.DEFAULT
+    private _statusMsWalletUser: number = STATUSES.DEFAULT
+    private _statusUpdateBalance: number = STATUSES.DEFAULT
+    // private _additionalStatus: number = STATUSES.DEFAULT
 
     constructor(
         @InjectRepository(WalletEntity)
@@ -21,6 +33,156 @@ export class WalletService {
         private readonly _connection: Connection,
         private readonly _transactionService: TransactionService,
     ) {}
+
+    async sleepForUpdateBalance(seconds: number) {
+        await new Promise((res) => setTimeout(res, seconds * 1000))
+
+        if (this._statusUpdateBalance === STATUSES.DEFAULT) {
+            this._logger.debug('Waiting response from coordinator...')
+
+            await this.sleepForUpdateBalance(1)
+        }
+    }
+
+    async sleepForCoordinator(seconds: number) {
+        await new Promise((res) => setTimeout(res, seconds * 1000))
+
+        if (
+            this._statusMsTransaction === STATUSES.DEFAULT ||
+            this._statusMsWalletUser === STATUSES.DEFAULT
+        ) {
+            this._logger.debug('Waiting responses from microservices...')
+
+            await this.sleepForCoordinator(1)
+        }
+    }
+
+    updateMicroservicesStatus(updateStatusDto: UpdateStatusDto) {
+        const { microservice, status } = updateStatusDto
+
+        if (microservice === TRANSACTION) {
+            this._statusMsTransaction = status
+        } else if (microservice === WALLET_USER) {
+            this._statusMsWalletUser = status
+        }
+    }
+
+    async updateBalance(updateBalanceDto: UpdateBalanceDto) {
+        try {
+            this._logger.debug('Start operation update balance')
+
+            const { wallet_id, operation, sum } = updateBalanceDto
+
+            const queryRunner = this._connection.createQueryRunner()
+
+            await queryRunner.connect()
+
+            await queryRunner.startTransaction('REPEATABLE READ')
+
+            try {
+                const wallet = await queryRunner.manager.findOne(
+                    WalletEntity,
+                    wallet_id,
+                )
+
+                if (!wallet) {
+                    throw new HttpException(
+                        'Wallet not found',
+                        HttpStatus.NOT_FOUND,
+                    )
+                }
+
+                switch (operation) {
+                    case OPERATIONS.DEPOSIT:
+                        await queryRunner.manager.update(
+                            WalletEntity,
+                            wallet_id,
+                            { incoming: wallet.incoming + sum },
+                        )
+
+                        break
+                    case OPERATIONS.WITHDRAW:
+                        await queryRunner.manager.update(
+                            WalletEntity,
+                            wallet_id,
+                            { outgoing: wallet.outgoing + sum },
+                        )
+
+                        break
+                    default:
+                        break
+                }
+
+                this.updateMicroservicesStatus({
+                    microservice: WALLET_USER,
+                    status: STATUSES.SUCCESS,
+                })
+
+                await this.sleepForUpdateBalance(1)
+
+                switch (this._statusUpdateBalance) {
+                    case STATUSES.SUCCESS:
+                        this._logger.log('COMMIT WALLET_USER')
+
+                        await queryRunner.commitTransaction()
+
+                        break
+                    case STATUSES.ERROR:
+                        throw 'Update balance transaction error'
+                    default:
+                        break
+                }
+            } catch (error) {
+                await queryRunner.rollbackTransaction()
+
+                this._statusMsWalletUser = STATUSES.ERROR
+
+                throw new HttpException(error, HttpStatus.CONFLICT)
+            } finally {
+                this._statusUpdateBalance = STATUSES.DEFAULT
+
+                await queryRunner.release()
+            }
+        } catch (error) {
+            this._logger.error(error, error.stack)
+
+            throw error
+        }
+    }
+
+    async updateTwoBalance(updateBalanceDto: UpdateTwoBalanceDto) {
+        try {
+            this._logger.debug('Start operation update two balance')
+
+            const walletFirstData = updateBalanceDto.updateData[0]
+            const walletSecondData = updateBalanceDto.updateData[1]
+
+            const queryRunner = this._connection.createQueryRunner()
+
+            await queryRunner.connect()
+
+            await queryRunner.startTransaction('READ UNCOMMITTED')
+
+            try {
+                this.updateBalance(walletFirstData)
+                this.updateBalance(walletSecondData)
+            } catch (error) {
+                await queryRunner.rollbackTransaction()
+
+                this._statusMsWalletUser = STATUSES.ERROR
+
+                throw new HttpException(error, HttpStatus.CONFLICT)
+            } finally {
+                this._statusUpdateBalance = STATUSES.DEFAULT
+
+                await queryRunner.release()
+            }
+        } catch (error) {
+            this._logger.error(error, error.stack)
+
+            throw error
+        }
+    }
 
     // QUERY
 
@@ -132,8 +294,14 @@ export class WalletService {
         }
     }
 
+<<<<<<< Updated upstream
     async deposit(depositDto: DepositWalletDto): Promise<Number> {
+=======
+    async deposit(depositDto: DepositWalletDto): Promise<String> {
+>>>>>>> Stashed changes
         try {
+            this._logger.debug('START DEPOSIT OPERATION')
+
             const { walletId, userId, sum } = depositDto
 
             await this._userService.findOne(userId)
@@ -180,16 +348,42 @@ export class WalletService {
                     wallet_id: walletId,
                 })
 
-                await queryRunner.commitTransaction()
+                await this.sleepForCoordinator(1)
+
+                switch (true) {
+                    case this._statusMsTransaction === STATUSES.SUCCESS &&
+                        this._statusMsWalletUser === STATUSES.SUCCESS:
+                        this._logger.log('ALL COMMIT')
+
+                        this._transactionService.sendActionCommit(
+                            STATUSES.SUCCESS,
+                        )
+                        this._statusUpdateBalance = STATUSES.SUCCESS
+
+                        break
+                    case this._statusMsTransaction === STATUSES.ERROR ||
+                        this._statusMsWalletUser === STATUSES.ERROR:
+                        this._transactionService.sendActionCommit(
+                            STATUSES.ERROR,
+                        )
+                        this._statusUpdateBalance = STATUSES.ERROR
+
+                        throw 'Total transaction error'
+                    default:
+                        break
+                }
 
                 return transaction.id
             } catch (error) {
-                this._logger.debug('ROLLBACK')
+                this._logger.error('ROLLBACK ALL')
 
                 await queryRunner.rollbackTransaction()
 
                 throw new HttpException(error, HttpStatus.CONFLICT)
             } finally {
+                this._statusMsTransaction = STATUSES.DEFAULT
+                this._statusMsWalletUser = STATUSES.DEFAULT
+
                 await queryRunner.release()
             }
         } catch (error) {
@@ -201,6 +395,8 @@ export class WalletService {
 
     async withdraw(withdrawDto: WithdrawWalletDto): Promise<Number> {
         try {
+            this._logger.debug('START WITHDRAW OPERATION')
+
             const { userId, walletId, sum } = withdrawDto
 
             await this._userService.findOne(userId)
@@ -256,14 +452,42 @@ export class WalletService {
                     wallet_id: walletId,
                 })
 
-                await queryRunner.commitTransaction()
+                await this.sleepForCoordinator(1)
+
+                switch (true) {
+                    case this._statusMsTransaction === STATUSES.SUCCESS &&
+                        this._statusMsWalletUser === STATUSES.SUCCESS:
+                        this._logger.log('ALL COMMIT')
+
+                        this._transactionService.sendActionCommit(
+                            STATUSES.SUCCESS,
+                        )
+                        this._statusUpdateBalance = STATUSES.SUCCESS
+
+                        break
+                    case this._statusMsTransaction === STATUSES.ERROR ||
+                        this._statusMsWalletUser === STATUSES.ERROR:
+                        this._transactionService.sendActionCommit(
+                            STATUSES.ERROR,
+                        )
+                        this._statusUpdateBalance = STATUSES.ERROR
+
+                        throw 'Total transaction error'
+                    default:
+                        break
+                }
 
                 return transaction.id
             } catch (error) {
+                this._logger.error('ROLLBACK ALL')
+
                 await queryRunner.rollbackTransaction()
 
                 throw new HttpException(error, HttpStatus.CONFLICT)
             } finally {
+                this._statusMsTransaction = STATUSES.DEFAULT
+                this._statusMsWalletUser = STATUSES.DEFAULT
+
                 await queryRunner.release()
             }
         } catch (error) {
@@ -275,6 +499,8 @@ export class WalletService {
 
     async transfer(transferDto: TransferWalletDto): Promise<Number> {
         try {
+            this._logger.debug('START TRANSFER OPERATION')
+
             const { from, to, sum } = transferDto
 
             if (from === to) {
@@ -378,6 +604,7 @@ export class WalletService {
                     )
                 }
 
+<<<<<<< Updated upstream
                 const moneyTransfer = {
                     outgoing: senderWallet.outgoing + sum,
                     incoming: recipientWallet.incoming + sum,
@@ -396,12 +623,16 @@ export class WalletService {
                 )
 
                 const senderTransaction = await this._transactionService.create(
+=======
+                await this._transactionService.createTwoTransaction([
+>>>>>>> Stashed changes
                     {
                         operation: 'transfer',
                         sum,
                         wallet_id: senderWallet.id,
                         from,
                         to,
+<<<<<<< Updated upstream
                     },
                 )
 
@@ -412,15 +643,56 @@ export class WalletService {
                     from,
                     to,
                 })
+=======
+                        operation_for_update: 'withdraw',
+                    },
+                    {
+                        operation: 'transfer',
+                        sum,
+                        wallet_id: recipientWallet.id,
+                        from,
+                        to,
+                        operation_for_update: 'deposit',
+                    },
+                ])
 
-                await queryRunner.commitTransaction()
+                await this.sleepForCoordinator(1)
+>>>>>>> Stashed changes
+
+                switch (true) {
+                    case this._statusMsTransaction === STATUSES.SUCCESS &&
+                        this._statusMsWalletUser === STATUSES.SUCCESS:
+                        this._logger.log('ALL COMMIT')
+
+                        this._transactionService.sendActionCommit(
+                            STATUSES.SUCCESS,
+                        )
+                        this._statusUpdateBalance = STATUSES.SUCCESS
+
+                        break
+                    case this._statusMsTransaction === STATUSES.ERROR ||
+                        this._statusMsWalletUser === STATUSES.ERROR:
+                        this._transactionService.sendActionCommit(
+                            STATUSES.ERROR,
+                        )
+                        this._statusUpdateBalance = STATUSES.ERROR
+
+                        throw 'Total transaction error'
+                    default:
+                        break
+                }
 
                 return senderTransaction.id
             } catch (error) {
+                this._logger.error('ROLLBACK ALL')
+
                 await queryRunner.rollbackTransaction()
 
                 throw new HttpException(error, HttpStatus.FORBIDDEN)
             } finally {
+                this._statusMsTransaction = STATUSES.DEFAULT
+                this._statusMsWalletUser = STATUSES.DEFAULT
+
                 await queryRunner.release()
             }
         } catch (error) {
