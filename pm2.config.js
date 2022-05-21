@@ -14,6 +14,9 @@ module.exports = {
                 PSQL_USERNAME: 'user',
                 PSQL_PASSWORD: 'user',
             },
+            output: "./logs/wallet_user/output.log",
+            error: "./logs/wallet_user/error.log",
+            log: "./logs/wallet_user/combined.outerr.log"
         },
         {
             name: 'transaction',
@@ -29,6 +32,9 @@ module.exports = {
                 PSQL_USERNAME: 'user',
                 PSQL_PASSWORD: 'user',
             },
+            output: "./logs/transaction/output.log",
+            error: "./logs/transaction/error.log",
+            log: "./logs/transaction/combined.outerr.log"
         },
     ],
 }
